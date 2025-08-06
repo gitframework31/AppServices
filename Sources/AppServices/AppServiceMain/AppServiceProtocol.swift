@@ -25,7 +25,7 @@ public protocol AppServiceProtocol {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?,
                      appServiceCofig configuration: AppConfigurationProtocol,
-                     status callback: @escaping (AppServiceResult) -> Void) async
+                     status callback: @Sendable @escaping (AppServiceResult) async -> Void) async
     
     func application( _ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] ) async -> Bool
     

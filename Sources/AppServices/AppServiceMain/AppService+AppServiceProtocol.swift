@@ -7,7 +7,7 @@ import SubscriptionService
 #endif
 
 extension AppService: AppServiceProtocol {
-    public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]?, appServiceCofig configuration: any AppConfigurationProtocol, status callback: @escaping (AppServiceResult) -> Void) async {
+    public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]?, appServiceCofig configuration: any AppConfigurationProtocol, status callback: @Sendable @escaping (AppServiceResult) async -> Void) async {
         networkMonitor.startMonitoring()
         await configureAll(configuration: configuration, callback: callback)
     }

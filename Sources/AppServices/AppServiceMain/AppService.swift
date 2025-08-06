@@ -72,9 +72,9 @@ public actor AppService {
     
     var networkMonitor = NetworkManager()
     
-    private var frameworkCallback: ((AppServiceResult) -> Void)?
+    private var frameworkCallback: ((AppServiceResult) async -> Void)?
     
-    func configureAll(configuration: AppConfigurationProtocol, callback: @escaping (AppServiceResult) -> Void) async {
+    func configureAll(configuration: AppConfigurationProtocol, callback: @Sendable @escaping (AppServiceResult) async -> Void) async {
         frameworkCallback = callback
         
         func verifyTestEnvironment(envVariables: [String: String]) -> Bool {
@@ -196,7 +196,7 @@ public actor AppService {
         let environmentVariables = ProcessInfo.processInfo.environment
         if verifyTestEnvironment(envVariables: environmentVariables) {
             let result = await handleTestEnvironment(envVariables: environmentVariables)
-            frameworkCallback?(result)
+            await frameworkCallback?(result)
             return
         }
         
@@ -440,7 +440,7 @@ extension AppService {
         
         if isInternetError && checkIsNoInternetHandledOrIgnored() == false && isUpdated == false {
             shouldReconfigure = true
-            frameworkCallback?(.noInternet)
+            await frameworkCallback?(.noInternet)
             return
         }
         
@@ -533,7 +533,7 @@ extension AppService {
         guard isConfiguredSend == false else { return }
         isConfiguredSend = true
         await sendConfigurationFinished(status: [:])
-        frameworkCallback?(.finished)
+        await frameworkCallback?(.finished)
         networkMonitor.stopMonitoring()
     }
 }
