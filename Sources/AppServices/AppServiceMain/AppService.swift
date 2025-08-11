@@ -72,10 +72,53 @@ public actor AppService {
     
     var networkMonitor = NetworkManager()
     
-    private var frameworkCallback: ((AppServiceResult) async -> Void)?
+    //private var frameworkCallback: ((AppServiceResult) async -> Void)?
     
-    func configureAll(configuration: AppConfigurationProtocol, callback: @Sendable @escaping (AppServiceResult) async -> Void) async {
-        frameworkCallback = callback
+    private var continuation: AsyncStream<AppServiceResult>.Continuation?
+    private var workTask: Task<Void, Never>?
+    
+    
+    // Your existing pipeline, but now call emit(...) instead of awaiting a callback
+    private func start(configuration: AppConfigurationProtocol) async {
+//        emit(.started)
+//        // ... do work, possibly launching subtasks
+//        emit(.progress(0.25))
+//        // ...
+//        emit(.progress(1.0))
+//        finish()
+    }
+    
+    private func emit(_ event: AppServiceResult) {
+        continuation?.yield(event)
+    }
+    
+    private func finish() {
+        continuation?.finish()
+    }
+    
+    private func cancelAndClear() {
+        workTask?.cancel()
+        workTask = nil
+        continuation = nil
+    }
+    
+    func configureAll(configuration: AppConfigurationProtocol) -> AsyncStream<AppServiceResult> {
+        precondition(continuation == nil, "configureAll already in progress")
+        
+        let (stream, cont) = AsyncStream<AppServiceResult>.makeStream(bufferingPolicy: .unbounded)
+        
+        continuation = cont
+        
+        cont.onTermination = { [weak self] _ in
+            Task { await self?.cancelAndClear() }
+        }
+        
+        workTask = Task { [weak self] in
+            guard let self else { return }
+            await self.start(configuration: configuration)
+        }
+        
+        let environmentVariables = ProcessInfo.processInfo.environment
         
         func verifyTestEnvironment(envVariables: [String: String]) -> Bool {
             return envVariables["xctest_skip_config"] != nil
@@ -188,29 +231,39 @@ public actor AppService {
             return true
         }
         
-        guard isConfigured == false else {
-            return
-        }
-        isConfigured = true
+//        guard isConfigured == false else {
+//            return
+//        }
+//        isConfigured = true
         
-        let environmentVariables = ProcessInfo.processInfo.environment
         if verifyTestEnvironment(envVariables: environmentVariables) {
-            let result = await handleTestEnvironment(envVariables: environmentVariables)
-            await frameworkCallback?(result)
-            return
-        }
-        
-        self.configuration = configuration
-        
-        Task {
-            await configureServices(configuration: configuration)
-        }
-        
-        NotificationCenter.default.addObserver(forName:  UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
-            Task { [weak self] in
-                await AppEnvironment.isChina ? self?.chineseFlow() : self?.normalFlow()
+            isConfigured = true
+            Task {
+                let result = await handleTestEnvironment(envVariables: environmentVariables)
+                emit(result)
+                //            await frameworkCallback?(result)
+                //            return
             }
         }
+        
+        if !isConfigured {
+            isConfigured = true
+            
+            self.configuration = configuration
+            
+            Task {
+                await configureServices(configuration: configuration)
+            }
+            
+            NotificationCenter.default.addObserver(forName:  UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+                Task { [weak self] in
+                    await AppEnvironment.isChina ? self?.chineseFlow() : self?.normalFlow()
+                }
+            }
+            
+        }
+        
+        return stream
     }
     
     private func normalFlow() {
@@ -440,7 +493,8 @@ extension AppService {
         
         if isInternetError && checkIsNoInternetHandledOrIgnored() == false && isUpdated == false {
             shouldReconfigure = true
-            await frameworkCallback?(.noInternet)
+           // await frameworkCallback?(.noInternet)
+            emit(.noInternet)
             return
         }
         
@@ -533,7 +587,8 @@ extension AppService {
         guard isConfiguredSend == false else { return }
         isConfiguredSend = true
         await sendConfigurationFinished(status: [:])
-        await frameworkCallback?(.finished)
+//        await frameworkCallback?(.finished)
+        emit(.finished)
         networkMonitor.stopMonitoring()
     }
 }

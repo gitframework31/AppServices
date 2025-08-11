@@ -132,7 +132,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             await AppService.shared.application(
                 application,
                 didFinishLaunchingWithOptions: launchOptions,
-                appServiceCofig: configuration
+                appServiceConfig: configuration
             ) { result in
                 switch result {
                 case .finished:

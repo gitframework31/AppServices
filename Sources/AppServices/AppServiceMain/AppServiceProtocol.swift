@@ -22,19 +22,22 @@ public protocol AppServiceProtocol {
     
     static var appServicesStatus:[ServiceType: ServiceStatus] { get async }
     
+    func startAppServices(_ application: UIApplication,
+                     _ launchOptions: [UIApplication.LaunchOptionsKey: Any]?,
+                     _ configuration: AppConfigurationProtocol) async -> AsyncStream<AppServiceResult>
+    
+    func application( _ app: UIApplication, _ url: URL, _ options: [UIApplication.OpenURLOptionsKey : Any] ) async -> Bool
+    
     func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?,
-                     appServiceCofig configuration: AppConfigurationProtocol,
-                     status callback: @Sendable @escaping (AppServiceResult) async -> Void) async
+                     _ userActivity: NSUserActivity,
+                     _ restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool
     
-    func application( _ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] ) async -> Bool
+    func application(_ application: UIApplication,
+                     _ deviceToken: Data)async
     
-    func application(_ application: UIApplication, continue userActivity: NSUserActivity,
-                     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool
-    
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data)async
-    
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) async
+    func application(_ application: UIApplication,
+                     _ userInfo: SendableUserInfo,
+                     _ completionHandler: @escaping (UIBackgroundFetchResult) -> Void) async
     
     func handleATTPermission(_ status: ATTrackingManager.AuthorizationStatus) async
     func handleNoInternetAlertWasShown() async
@@ -78,5 +81,12 @@ public struct UserInfo: Codable {
     public init(userSource: UserNetworkSource, attrInfo: [String : String]? = nil) {
         self.userSource = userSource
         self.attrInfo = attrInfo
+    }
+}
+
+public struct SendableUserInfo: @unchecked Sendable {
+    public let value: [AnyHashable: Any]
+    public init(value: [AnyHashable : Any]) {
+        self.value = value
     }
 }
