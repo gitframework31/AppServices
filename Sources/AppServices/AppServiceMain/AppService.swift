@@ -541,7 +541,18 @@ extension AppService {
     }
     
     func getAttributionResult() async -> (network: UserNetworkSource, userAttribution: [String: String]) {
-        let deepLinkResult = await appsflyerManager?.getDeeplinkResult() ?? [:]
+        // Check if this is first launch and wait for conversion data if needed
+        let isFirstLaunch = configuration?.appSettings.isFirstLaunch == true
+        let deepLinkResult: [String: String]
+        
+        if isFirstLaunch {
+            // Wait for conversion data on first launch with 15 second timeout
+            deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 15.0) ?? [:]
+        } else {
+            // For subsequent launches, get result immediately
+            deepLinkResult = await appsflyerManager?.getDeeplinkResult() ?? [:]
+        }
+        
         let asaResult = await AttributionManager.shared.installResultData
         
         let isIPAT = asaResult?.isIPAT ?? false
@@ -575,7 +586,7 @@ extension AppService {
 extension AppService {
     func handlePossibleAttributionUpdate() async {
         Task {
-            let _ = try? await appsflyerManager?.getDeepLinkInfo(timeout: 10)//???? think about later
+           // let _ = try? await appsflyerManager?.getDeepLinkInfo(timeout: 10)//???? think about later
             await handleAttributionFinish(isUpdated: true)
         }
     }

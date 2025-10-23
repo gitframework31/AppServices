@@ -8,6 +8,8 @@ public protocol AppfslyerManagerProtocol {
     func setCustomerUserID(_ newValue: String?) async
     
     func getDeeplinkResult() async -> [String: String]?
+    func hasConversionDataBeenReceived() async -> Bool
+    func waitForConversionDataOnFirstLaunch(timeout: TimeInterval) async -> [String: String]
     
     func application( _ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] )
     func application(_ application: UIApplication, continue userActivity: NSUserActivity,

@@ -1,4 +1,3 @@
-
 import UIKit
 import AppsFlyerLib
 
@@ -15,7 +14,48 @@ public actor AppfslyerManager: NSObject {
         UserDefaults.standard.set(newValue, forKey: deepLinkResultUDKey)
     }
     
+    public func hasConversionDataBeenReceived() async -> Bool {
+        return UserDefaults.standard.bool(forKey: conversionDataReceivedKey)
+    }
+    
+    private func markConversionDataReceived() async {
+        UserDefaults.standard.set(true, forKey: conversionDataReceivedKey)
+    }
+    
+    public func waitForConversionDataOnFirstLaunch(timeout: TimeInterval = 15.0) async -> [String: String] {
+        // If it's not the first launch, return immediately
+        if await hasConversionDataBeenReceived() {
+            return await getDeeplinkResult() ?? [:]
+        }
+        
+        // Wait for conversion data with timeout
+        return await withTaskGroup(of: [String: String].self) { group in
+            // Add timeout task
+            group.addTask { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return await self?.getDeeplinkResult() ?? [:]
+            }
+            
+            // Add polling task
+            group.addTask { [weak self] in
+                while await self?.hasConversionDataBeenReceived() == false {
+                    try? await Task.sleep(nanoseconds: 500_000_000) // Check every 0.5 seconds
+                }
+                return await self?.getDeeplinkResult() ?? [:]
+            }
+            
+            // Return the first result (either timeout or conversion data received)
+            for await result in group {
+                group.cancelAll()
+                return result
+            }
+            
+            return [:]
+        }
+    }
+    
     private var deepLinkResultUDKey = "appservices_appsflyer_deepLinkResult"
+    private var conversionDataReceivedKey = "appservices_appsflyer_conversionDataReceived"
 
     private typealias ConversionDataContinuation = CheckedContinuation<AppfslyerConversionInfo, Error>
     private var conversionDataContinuation: ConversionDataContinuation?
@@ -134,8 +174,14 @@ extension AppfslyerManager: AppfslyerManagerProtocol {
             throw error
         }
         
+        // Check if already waiting for conversion data
+        if conversionDataContinuation != nil {
+            throw AppsflyerError.alreadyInProgress
+        }
+        
         return try await withCheckedThrowingContinuation({ [weak self] (continuation: ConversionDataContinuation) in
             guard let self = self else {
+                continuation.resume(throwing: AppsflyerError.managerDeallocated)
                 return
             }
             
@@ -164,17 +210,19 @@ extension AppfslyerManager: AppsFlyerLibDelegate {
         Task {
             await setConversionError(nil)
             let deepLinkInfo = await parseDeepLink(conversionInfo.toSendable())
-            let appfslyerConversionInfo = AppfslyerConversionInfo(conversionInfo: conversionInfo, deepLinkInfo: deepLinkInfo)
+            let appsflyerConversionInfo = AppfslyerConversionInfo(conversionInfo: conversionInfo, deepLinkInfo: deepLinkInfo)
             
-            await storeConversionData(appfslyerConversionInfo)
+            await storeConversionData(appsflyerConversionInfo)
             await self.setDeeplinkResult(deepLinkInfo)
-            await updateContinuation(appfslyerConversionInfo)
+            await self.markConversionDataReceived()
+            await updateContinuation(appsflyerConversionInfo)
         }
     }
     
     public nonisolated func onConversionDataFail(_ error: Error) {
         Task {
             await setConversionError(error)
+            await self.markConversionDataReceived() // Mark as received even on failure
             await updateContinuation(error)
         }
     }
@@ -182,6 +230,7 @@ extension AppfslyerManager: AppsFlyerLibDelegate {
     public nonisolated func onAppOpenAttributionFailure(_ error: any Error) {
         Task {
             await setConversionError(error)
+            await self.markConversionDataReceived() // Mark as received even on failure
             await updateContinuation(error)
         }
     }
@@ -200,5 +249,3 @@ extension Dictionary {
         return converted
     }
 }
-
-

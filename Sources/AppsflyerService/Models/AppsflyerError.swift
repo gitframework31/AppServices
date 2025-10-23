@@ -1,5 +1,7 @@
 import Foundation
 
-enum AppsflyerError: Error {
+public enum AppsflyerError: Error {
     case timeout
+    case alreadyInProgress
+    case managerDeallocated
 }
