@@ -6,59 +6,60 @@ public class SentryService: SentryServiceProtocol, SentryServicePublicProtocol {
     
     public static var shared = SentryService()
     
-    
-    public func configure(_ data: SentryServiceConfig) {
-        SentrySDK.start { options in
-            let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" || Bundle.main.appStoreReceiptURL == nil
-            
-            options.dsn = data.dsn
-            options.debug = data.debug
-            options.diagnosticLevel = SentryLevel(rawValue: data.diagnosticLevel) ?? .debug
-            options.appHangTimeoutInterval = data.appHangTimeoutInterval
-            options.enableAppHangTracking = data.enableAppHangTracking
+    public func configure(_ data: SentryServiceConfig) async {
+        await MainActor.run {
+            SentrySDK.start { options in
+                let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" || Bundle.main.appStoreReceiptURL == nil
+                
+                options.dsn = data.dsn
+                options.debug = data.debug
+                options.diagnosticLevel = SentryLevel(rawValue: data.diagnosticLevel) ?? .debug
+                options.appHangTimeoutInterval = data.appHangTimeoutInterval
+                options.enableAppHangTracking = data.enableAppHangTracking
 #if DEBUG
-            options.environment = "debug"
+                options.environment = "debug"
 #else
-            options.environment = isTestFlight ? "debug" : "production"
+                options.environment = isTestFlight ? "debug" : "production"
 #endif
-            
-            options.beforeSend = { [weak self] event in
-                if let url = event.request?.url, url.contains("appsflyersdk.com") {
-                    event.exceptions?.last?.type = "Appsflyer_http_error"
-                    event.tags?["source"] = "Appsflyer"
-                    if let description = self?.makeErrorDescription(event.breadcrumbs, domain: "appsflyersdk.com") {
-                        event.exceptions?.last?.value = description
+                
+                options.beforeSend = { [weak self] event in
+                    if let url = event.request?.url, url.contains("appsflyersdk.com") {
+                        event.exceptions?.last?.type = "Appsflyer_http_error"
+                        event.tags?["source"] = "Appsflyer"
+                        if let description = self?.makeErrorDescription(event.breadcrumbs, domain: "appsflyersdk.com") {
+                            event.exceptions?.last?.value = description
+                        }
                     }
-                }
-                if let url = event.request?.url, url.contains("amplitude.com") {
-                    event.exceptions?.last?.type = "Amplitude_http_error"
-                    event.tags?["source"] = "Amplitude"
-                    if let description = self?.makeErrorDescription(event.breadcrumbs, domain: "amplitude.com") {
-                        event.exceptions?.last?.value = description
+                    if let url = event.request?.url, url.contains("amplitude.com") {
+                        event.exceptions?.last?.type = "Amplitude_http_error"
+                        event.tags?["source"] = "Amplitude"
+                        if let description = self?.makeErrorDescription(event.breadcrumbs, domain: "amplitude.com") {
+                            event.exceptions?.last?.value = description
+                        }
                     }
+                    
+                    if let exception = event.exceptions?.first, exception.type == "App Hanging" {
+                        event.level = .warning
+                    }
+                    
+                    return event
                 }
                 
-                if let exception = event.exceptions?.first, exception.type == "App Hanging" {
-                    event.level = .warning
-                }
+                options.tracesSampleRate = NSNumber(value: data.tracesSampleRate)
+                options.profilesSampleRate = NSNumber(value: data.profilesSampleRate)
+                options.enableCaptureFailedRequests = data.shouldCaptureHttpRequests
                 
-                return event
-            }
-            
-            options.tracesSampleRate = NSNumber(value: data.tracesSampleRate)
-            options.profilesSampleRate = NSNumber(value: data.profilesSampleRate)
-            options.enableCaptureFailedRequests = data.shouldCaptureHttpRequests
-            
-            let httpStatusCodeRange = HttpStatusCodeRange(min: data.httpCodesRange.lowerBound, max: data.httpCodesRange.length)
-            options.failedRequestStatusCodes = [ httpStatusCodeRange ]
-            
-            options.failedRequestTargets = [
-                "amplitude.com",
-                "appsflyersdk.com",
-            ]
-            
-            if let domains = data.handledDomains {
-                options.failedRequestTargets.append(contentsOf: domains)
+                let httpStatusCodeRange = HttpStatusCodeRange(min: data.httpCodesRange.lowerBound, max: data.httpCodesRange.length)
+                options.failedRequestStatusCodes = [ httpStatusCodeRange ]
+                
+                options.failedRequestTargets = [
+                    "amplitude.com",
+                    "appsflyersdk.com",
+                ]
+                
+                if let domains = data.handledDomains {
+                    options.failedRequestTargets.append(contentsOf: domains)
+                }
             }
         }
     }
@@ -110,7 +111,7 @@ public class SentryService: SentryServiceProtocol, SentryServicePublicProtocol {
         } else {
             return nil
         }
-
+        
     }
     
 }

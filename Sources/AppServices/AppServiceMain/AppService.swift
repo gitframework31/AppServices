@@ -71,22 +71,9 @@ public actor AppService {
     var shouldReconfigure = false
     
     var networkMonitor = NetworkManager()
-    
-    //private var frameworkCallback: ((AppServiceResult) async -> Void)?
-    
+        
     private var continuation: AsyncStream<AppServiceResult>.Continuation?
     private var workTask: Task<Void, Never>?
-    
-    
-    // Your existing pipeline, but now call emit(...) instead of awaiting a callback
-    private func start(configuration: AppConfigurationProtocol) async {
-//        emit(.started)
-//        // ... do work, possibly launching subtasks
-//        emit(.progress(0.25))
-//        // ...
-//        emit(.progress(1.0))
-//        finish()
-    }
     
     private func emit(_ event: AppServiceResult) {
         continuation?.yield(event)
@@ -115,7 +102,6 @@ public actor AppService {
         
         workTask = Task { [weak self] in
             guard let self else { return }
-            await self.start(configuration: configuration)
         }
         
         let environmentVariables = ProcessInfo.processInfo.environment
@@ -147,7 +133,34 @@ public actor AppService {
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
             return result
         }
-        
+        Task {
+            analyticsManager = AmplitudeManager.shared
+            await analyticsManager?.configure(apiKey: configuration.appSettings.amplitudeSecret,
+                                              isChinese: AppEnvironment.isChina,
+                                              customServerUrl: configuration.amplitudeDataSource.customServerURL)
+        }
+        Task {
+            let facebookData = await AttributionFacebookModel(fbUserId: self.facebookManager?.getUserID() ?? "",
+                                                              fbUserData: self.facebookManager?.userData ?? "",
+                                                              fbAnonId: self.facebookManager?.anonUserID ?? "")
+            let appsflyerToken = await self.appsflyerManager?.appsflyerID
+            
+            let installPath = "/install-application"
+            let purchasePath = "/subscribe"
+            let installURLPath = configuration.attServerData.installPath
+            let purchaseURLPath = configuration.attServerData.purchasePath
+            
+            let attributionConfiguration = AttributionConfigData(authToken: configuration.appSettings.attributionServerSecret,
+                                                                 installServerURLPath: installURLPath,
+                                                                 purchaseServerURLPath: purchaseURLPath,
+                                                                 installPath: installPath,
+                                                                 purchasePath: purchasePath,
+                                                                 appsflyerID: appsflyerToken,
+                                                                 appEnvironment: AppEnvironment.current.rawValue,
+                                                                 facebookData: facebookData)
+            
+            await AttributionManager.shared.configure(config: attributionConfiguration)
+        }
         func configureServices(configuration: AppConfigurationProtocol) async -> Bool {
             sentryManager = SentryService.shared
             
@@ -162,7 +175,6 @@ public actor AppService {
                 sentryManager?.configure(sentryConfig)
             }
             
-            analyticsManager = AmplitudeManager.shared
             configuration.appSettings.launchCount += 1
             appsflyerManager = AppfslyerManager(config: configuration.appsflyerConfig)
             facebookManager = FacebookManager()
@@ -174,14 +186,7 @@ public actor AppService {
             
             remoteConfigManager = RemoteConfigurationManager(deploymentKey: configuration.appSettings.amplitudeDeploymentKey,
                                                              userInfo: [InternalUserProperty.app_environment.key: AppEnvironment.current.rawValue])
-            
-            let amplitudeCustomURL = configuration.amplitudeDataSource.customServerURL
-            let attributionToken = configuration.appSettings.attributionServerSecret
-            
-            await analyticsManager?.configure(apiKey: configuration.appSettings.amplitudeSecret,
-                                              isChinese: AppEnvironment.isChina,
-                                              customServerUrl: amplitudeCustomURL)
-            
+    
             await withTaskGroup(of: Void.self) { group in
                 
                 group.addTask { [weak self] in
@@ -202,47 +207,16 @@ public actor AppService {
                     let error = await self.purchaseManager?.initialize(allIdentifiers: configuration.paywallDataSource.allOfferingsIDs, proIdentifiers: configuration.paywallDataSource.allProOfferingsIDs)
                     await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
                 }
-                
-                group.addTask { [weak self] in
-                    guard let self = self else { return }
-                    let facebookData = await AttributionFacebookModel(fbUserId: self.facebookManager?.getUserID() ?? "",
-                                                                      fbUserData: self.facebookManager?.userData ?? "",
-                                                                      fbAnonId: self.facebookManager?.anonUserID ?? "")
-                    let appsflyerToken = await self.appsflyerManager?.appsflyerID
-                    
-                    let installPath = "/install-application"
-                    let purchasePath = "/subscribe"
-                    let installURLPath = configuration.attServerData.installPath
-                    let purchaseURLPath = configuration.attServerData.purchasePath
-                    
-                    let attributionConfiguration = AttributionConfigData(authToken: attributionToken,
-                                                                         installServerURLPath: installURLPath,
-                                                                         purchaseServerURLPath: purchaseURLPath,
-                                                                         installPath: installPath,
-                                                                         purchasePath: purchasePath,
-                                                                         appsflyerID: appsflyerToken,
-                                                                         appEnvironment: AppEnvironment.current.rawValue,
-                                                                         facebookData: facebookData)
-                    
-                    await AttributionManager.shared.configure(config: attributionConfiguration)
-                }
             }
             
             return true
         }
-        
-//        guard isConfigured == false else {
-//            return
-//        }
-//        isConfigured = true
         
         if verifyTestEnvironment(envVariables: environmentVariables) {
             isConfigured = true
             Task {
                 let result = await handleTestEnvironment(envVariables: environmentVariables)
                 emit(result)
-                //            await frameworkCallback?(result)
-                //            return
             }
         }
         
@@ -255,22 +229,37 @@ public actor AppService {
                 await configureServices(configuration: configuration)
             }
             
-            NotificationCenter.default.addObserver(forName:  UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
-                Task { [weak self] in
-                    await AppEnvironment.isChina ? self?.chineseFlow() : self?.normalFlow()
-                }
+            NotificationCenter.default.addObserver(forName:  UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                guard let self else { return }
+                Task { await self.initialFlow() }
             }
-            
+            initialFlow()
         }
         
         return stream
+    }
+    
+    private var initialFlowStarted = false
+
+    private func initialFlow() {
+        guard !initialFlowStarted else {return}
+        initialFlowStarted = true
+        Task {
+            AppEnvironment.isChina ? chineseFlow() : normalFlow()
+        }
     }
     
     private func normalFlow() {
         Task {
             await handleDidBecomeActive()
             await handleAttributionInstall()
-            await handleAttributionFinish(isUpdated: false)
+            if networkMonitor.isConnected {
+                await handleAttributionFinish(isUpdated: false)
+            }else{
+                Task {
+                    await handleAttributionFinish(isUpdated: false)
+                }
+            }
             await signForConfigurationFinish()
         }
     }
@@ -284,8 +273,15 @@ public actor AppService {
     func reconfigure() async {
         attAnswered = false
         
-        await handleAttributionFinish(isUpdated: false)
-        await handleAttributionInstall()
+        if networkMonitor.isConnected {
+            await handleAttributionFinish(isUpdated: false)
+            await handleAttributionInstall()
+        }else{
+            Task {
+                await handleAttributionFinish(isUpdated: false)
+                await handleAttributionInstall()
+            }
+        }
         
         await remoteConfigManager?.updateRemoteConfig([:]) { [weak self] in
             guard let self else { return }
@@ -477,8 +473,10 @@ extension AppService {
                 assertionFailure()
             }
         }
-        
-        let _ = await AttributionManager.shared.syncOnAppStart()
+     
+        Task {
+            let _ = await AttributionManager.shared.syncOnAppStart()
+        }
         let error = await AttributionManager.shared.installError
         await AppServicesStatus.shared.updateStatus(.completed(error), for: .attribution)
         await handlePossibleAttributionUpdate()
@@ -493,8 +491,8 @@ extension AppService {
         
         if isInternetError && checkIsNoInternetHandledOrIgnored() == false && isUpdated == false {
             shouldReconfigure = true
-           // await frameworkCallback?(.noInternet)
             emit(.noInternet)
+            initialFlowStarted = false
             return
         }
         
@@ -598,9 +596,9 @@ extension AppService {
         guard isConfiguredSend == false else { return }
         isConfiguredSend = true
         await sendConfigurationFinished(status: [:])
-//        await frameworkCallback?(.finished)
         emit(.finished)
         networkMonitor.stopMonitoring()
+        initialFlowStarted = false
     }
 }
 

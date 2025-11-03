@@ -81,7 +81,7 @@ public actor AttributionManager {
     }
     
     fileprivate func sendInstallData(_ data: AttributionInstallRequestModel, authToken: AttributionServerToken) async -> AttributionManagerResult? {
-        let result = await serverProcessor?.sendInstallAnalytics(parameters: data, authToken: authorizationToken, isBackgroundSession: false)
+        let result = await serverProcessor?.sendInstallAnalytics(parameters: data, authToken: authorizationToken, isBackgroundSession: false)// wait for timeout in case of no internet
         let response = await handleSendInstallResponse(result?.dict, error: result?.error, parameters: data)
         return response
     }

@@ -126,3 +126,10 @@ final class NetworkManager {
         completion(isConnected)
     }
 }
+
+enum NetworkError: Error {
+    case noInternet
+    case serverError(statusCode: Int)
+    case invalidResponse
+    case custom(message: String)
+}

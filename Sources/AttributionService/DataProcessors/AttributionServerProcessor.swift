@@ -86,7 +86,7 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
         isSyncingInstall = true
         defer { isSyncingInstall = false }
 
-        let request = createRequest(url: url, body: jsonData, authToken: authToken)
+        var request = createRequest(url: url, body: jsonData, authToken: authToken)
         let taskSession = isBackgroundSession ? waitingSession : session
 
         do {
