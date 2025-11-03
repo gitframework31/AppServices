@@ -172,7 +172,7 @@ public actor AppService {
                                                        shouldCaptureHttpRequests: sentryDataSource.shouldCaptureHttpRequests,
                                                        httpCodesRange: sentryDataSource.httpCodesRange,
                                                        handledDomains: sentryDataSource.handledDomains)
-                sentryManager?.configure(sentryConfig)
+                await sentryManager?.configure(sentryConfig)
             }
             
             configuration.appSettings.launchCount += 1
