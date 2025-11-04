@@ -38,10 +38,29 @@ public actor AppfslyerManager: NSObject {
             
             // Add polling task
             group.addTask { [weak self] in
-                while await self?.hasConversionDataBeenReceived() == false {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // Check every 0.5 seconds
+                while true {
+                    // Check for cancellation first
+                    if Task.isCancelled {
+                        return [:]
+                    }
+                    
+                    // Check if conversion data has been received
+                    if await self?.hasConversionDataBeenReceived() == true {
+                        return await self?.getDeeplinkResult() ?? [:]
+                    }
+                    
+                    // If self is deallocated, exit
+                    guard self != nil else {
+                        return [:]
+                    }
+                    
+                    do {
+                        try await Task.sleep(nanoseconds: 1_000_000_000) // Check every 1 second
+                    } catch {
+                        // Task was cancelled during sleep
+                        return [:]
+                    }
                 }
-                return await self?.getDeeplinkResult() ?? [:]
             }
             
             // Return the first result (either timeout or conversion data received)
@@ -211,7 +230,6 @@ extension AppfslyerManager: AppsFlyerLibDelegate {
             await setConversionError(nil)
             let deepLinkInfo = await parseDeepLink(conversionInfo.toSendable())
             let appsflyerConversionInfo = AppfslyerConversionInfo(conversionInfo: conversionInfo, deepLinkInfo: deepLinkInfo)
-            
             await storeConversionData(appsflyerConversionInfo)
             await self.setDeeplinkResult(deepLinkInfo)
             await self.markConversionDataReceived()

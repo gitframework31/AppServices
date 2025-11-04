@@ -21,7 +21,7 @@ extension AppService: AppServiceProtocol {
     }
     
     public nonisolated func application(_ application: UIApplication, _ userActivity: NSUserActivity, _ restorationHandler: @escaping ([any UIUserActivityRestoring]?) -> Void) -> Bool {
-        appsflyerProxy?.application(application, continue: userActivity, restorationHandler: restorationHandler) ?? false
+        return appsflyerProxy?.application(application, continue: userActivity, restorationHandler: restorationHandler) ?? false
     }
     
     public func application(_ application: UIApplication, _ deviceToken: Data) async {

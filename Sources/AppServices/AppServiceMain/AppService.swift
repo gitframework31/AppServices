@@ -71,7 +71,7 @@ public actor AppService {
     var shouldReconfigure = false
     
     var networkMonitor = NetworkManager()
-        
+    
     private var continuation: AsyncStream<AppServiceResult>.Continuation?
     private var workTask: Task<Void, Never>?
     
@@ -133,12 +133,16 @@ public actor AppService {
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
             return result
         }
+        
+        appsflyerManager = AppfslyerManager(config: configuration.appsflyerConfig)
+        
         Task {
             analyticsManager = AmplitudeManager.shared
             await analyticsManager?.configure(apiKey: configuration.appSettings.amplitudeSecret,
                                               isChinese: AppEnvironment.isChina,
                                               customServerUrl: configuration.amplitudeDataSource.customServerURL)
         }
+        
         Task {
             let facebookData = await AttributionFacebookModel(fbUserId: self.facebookManager?.getUserID() ?? "",
                                                               fbUserData: self.facebookManager?.userData ?? "",
@@ -161,6 +165,7 @@ public actor AppService {
             
             await AttributionManager.shared.configure(config: attributionConfiguration)
         }
+        
         func configureServices(configuration: AppConfigurationProtocol) async -> Bool {
             sentryManager = SentryService.shared
             
@@ -176,7 +181,7 @@ public actor AppService {
             }
             
             configuration.appSettings.launchCount += 1
-            appsflyerManager = AppfslyerManager(config: configuration.appsflyerConfig)
+
             facebookManager = FacebookManager()
             firebaseManager = FirebaseManager()
             
@@ -186,7 +191,7 @@ public actor AppService {
             
             remoteConfigManager = RemoteConfigurationManager(deploymentKey: configuration.appSettings.amplitudeDeploymentKey,
                                                              userInfo: [InternalUserProperty.app_environment.key: AppEnvironment.current.rawValue])
-    
+            
             await withTaskGroup(of: Void.self) { group in
                 
                 group.addTask { [weak self] in
@@ -233,6 +238,7 @@ public actor AppService {
                 guard let self else { return }
                 Task { await self.initialFlow() }
             }
+            
             initialFlow()
         }
         
@@ -240,10 +246,11 @@ public actor AppService {
     }
     
     private var initialFlowStarted = false
-
+    
     private func initialFlow() {
         guard !initialFlowStarted else {return}
         initialFlowStarted = true
+        
         Task {
             AppEnvironment.isChina ? chineseFlow() : normalFlow()
         }
@@ -310,20 +317,20 @@ public actor AppService {
         if self.configuration?.useDefaultATTRequest == true {
             await self.requestATT()
         }
+        
         await withTaskGroup(of: Void.self) { group in
             group.addTask { [weak self] in
                 await self?.configureID()
-            }
-            group.addTask { [weak self] in
-                await self?.checkIfReconfigNeeded()
-            }
-            group.addTask { [weak self] in
                 if await self?.appsflyerManager?.getCustomerUserID() != nil {
                     try? await self?.appsflyerManager?.startAppsflyer()
                 } else {
                     await self?.sentryManager?.log(NSError(domain: "appservices.appsflyer.noCustomerUserID", code: 1001))
                 }
             }
+            group.addTask { [weak self] in
+                await self?.checkIfReconfigNeeded()
+            }
+            
             group.addTask { [weak self] in
                 await self?.purchaseManager?.updateProductStatus()
             }
@@ -473,7 +480,7 @@ extension AppService {
                 assertionFailure()
             }
         }
-     
+        
         Task {
             let _ = await AttributionManager.shared.syncOnAppStart()
         }
@@ -545,12 +552,12 @@ extension AppService {
         
         if isFirstLaunch {
             // Wait for conversion data on first launch with 15 second timeout
-            deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 15.0) ?? [:]
+            deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 5.0) ?? [:]
         } else {
             // For subsequent launches, get result immediately
             deepLinkResult = await appsflyerManager?.getDeeplinkResult() ?? [:]
         }
-        
+        print("deepLinkResult_ \(deepLinkResult)")
         let asaResult = await AttributionManager.shared.installResultData
         
         let isIPAT = asaResult?.isIPAT ?? false
@@ -584,7 +591,7 @@ extension AppService {
 extension AppService {
     func handlePossibleAttributionUpdate() async {
         Task {
-           // let _ = try? await appsflyerManager?.getDeepLinkInfo(timeout: 10)//???? think about later
+            // let _ = try? await appsflyerManager?.getDeepLinkInfo(timeout: 10)//???? think about later
             await handleAttributionFinish(isUpdated: true)
         }
     }
