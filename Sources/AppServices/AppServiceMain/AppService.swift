@@ -252,23 +252,47 @@ public actor AppService {
         initialFlowStarted = true
         
         Task {
-            AppEnvironment.isChina ? chineseFlow() : normalFlow()
+            await AppEnvironment.isChina ? chineseFlow() : normalFlow()
         }
     }
     
-    private func normalFlow() {
-        Task {
-            await handleDidBecomeActive()
-            await handleAttributionInstall()
-            if networkMonitor.isConnected {
-                await handleAttributionFinish(isUpdated: false)
-            }else{
-                Task {
-                    await handleAttributionFinish(isUpdated: false)
-                }
-            }
-            await signForConfigurationFinish()
+    private func normalFlow() async {
+        print(" \(Date()) frame init started...")
+        let timeoutDuration: TimeInterval = 6.0
+        
+        enum TimeoutResult {
+            case completed
+            case timedOut
         }
+        
+        let result = await withTaskGroup(of: TimeoutResult.self) { group in
+
+            group.addTask {
+                await self.handleDidBecomeActive()
+                await self.handleAttributionInstall()
+                await self.handleAttributionFinish(isUpdated: false)
+                return .completed
+            }
+            
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(timeoutDuration * 1_000_000_000))
+                return .timedOut
+            }
+            
+            let firstResult = await group.next() ?? .completed
+            
+            group.cancelAll()
+            
+            return firstResult
+        }
+        
+        switch result {
+        case .completed:
+            print(" \(Date()) ⏱️ framework init finished...")
+        case .timedOut:
+            print(" \(Date()) ⏱️ framework timeout after \(timeoutDuration) seconds, retrying...")
+        }
+        await signForConfigurationFinish()
     }
     
     private func chineseFlow() {
@@ -552,7 +576,7 @@ extension AppService {
         
         if isFirstLaunch {
             // Wait for conversion data on first launch with 15 second timeout
-            deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 5.0) ?? [:]
+            deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 7.0) ?? [:]
         } else {
             // For subsequent launches, get result immediately
             deepLinkResult = await appsflyerManager?.getDeeplinkResult() ?? [:]
@@ -601,9 +625,11 @@ extension AppService {
 extension AppService {
     func signForConfigurationFinish() async {
         guard isConfiguredSend == false else { return }
-        isConfiguredSend = true
-        await sendConfigurationFinished(status: [:])
         emit(.finished)
+        isConfiguredSend = true
+        Task {
+            await sendConfigurationFinished(status: [:])
+        }
         networkMonitor.stopMonitoring()
         initialFlowStarted = false
     }

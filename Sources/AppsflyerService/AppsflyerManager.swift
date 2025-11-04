@@ -226,6 +226,7 @@ extension AppfslyerManager: AppfslyerManagerProtocol {
 
 extension AppfslyerManager: AppsFlyerLibDelegate {
     public nonisolated func onConversionDataSuccess(_ conversionInfo: [AnyHashable : Any]) {
+        print("onConversionDataSuccess \(conversionInfo)")
         Task {
             await setConversionError(nil)
             let deepLinkInfo = await parseDeepLink(conversionInfo.toSendable())

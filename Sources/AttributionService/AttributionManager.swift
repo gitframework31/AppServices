@@ -132,6 +132,7 @@ public actor AttributionManager {
                                                                                                                           currency: currency))
         
         let result = await serverProcessor?.sendPurchaseAnalytics(analytics: anal, userId: userId, authToken: authorizationToken, isBackgroundSession: false)
+        
         handleSendPurchaseResult(result ?? false, details: details)
     }
     

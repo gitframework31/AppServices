@@ -131,7 +131,6 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
              return data != nil
          } catch {
              handleServerError()
-
              if !taskSession.configuration.waitsForConnectivity {
                  return await sendPurchaseAnalytics(
                      analytics: analytics,
