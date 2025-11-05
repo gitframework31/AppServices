@@ -260,59 +260,44 @@ public actor AppService {
         print(" \(Date()) frame init started...")
         let timeoutDuration: TimeInterval = 6.0
         
-        enum TimeoutResult {
-            case completed
-            case timedOut
+        let task = Task {
+            await self.handleDidBecomeActive()
+            await self.handleAttributionInstall()
+            await self.handleAttributionFinish(isUpdated: false)
+            await signForConfigurationFinish()
         }
-        
-        let result = await withTaskGroup(of: TimeoutResult.self) { group in
 
-            group.addTask {
-                await self.handleDidBecomeActive()
-                await self.handleAttributionInstall()
-                await self.handleAttributionFinish(isUpdated: false)
-                return .completed
+        let timedOut = await withTaskCancellationHandler {
+            do {
+                try await Task.sleep(nanoseconds: UInt64(timeoutDuration * 1_000_000_000))
+                task.cancel()
+                return true
+            } catch {
+                return false
             }
-            
-            group.addTask {
-                try? await Task.sleep(nanoseconds: UInt64(timeoutDuration * 1_000_000_000))
-                return .timedOut
-            }
-            
-            let firstResult = await group.next() ?? .completed
-            
-            group.cancelAll()
-            
-            return firstResult
+        } onCancel: {
+            task.cancel()
+        }
+
+        if timedOut {
+            print(" \(Date()) ⏱️ framework timeout after \(timeoutDuration) seconds")
+            await signForConfigurationFinish()
+        } else {
+            print(" \(Date()) ⏱️ framework init finished...")
         }
         
-        switch result {
-        case .completed:
-            print(" \(Date()) ⏱️ framework init finished...")
-        case .timedOut:
-            print(" \(Date()) ⏱️ framework timeout after \(timeoutDuration) seconds, retrying...")
-        }
-        await signForConfigurationFinish()
+//        await signForConfigurationFinish()
     }
     
-    private func chineseFlow() {
-        Task {
-            await handleDidBecomeActive()
-        }
+    private func chineseFlow() async {
+        await handleDidBecomeActive()
     }
     
     func reconfigure() async {
         attAnswered = false
         
-        if networkMonitor.isConnected {
-            await handleAttributionFinish(isUpdated: false)
-            await handleAttributionInstall()
-        }else{
-            Task {
-                await handleAttributionFinish(isUpdated: false)
-                await handleAttributionInstall()
-            }
-        }
+        await handleAttributionFinish(isUpdated: false)
+        await handleAttributionInstall()
         
         await remoteConfigManager?.updateRemoteConfig([:]) { [weak self] in
             guard let self else { return }
