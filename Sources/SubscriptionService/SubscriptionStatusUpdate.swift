@@ -22,12 +22,16 @@ extension SubscriptionManager {
         updateProductStatusTask = task
         
         for await _ in stream {}
+        
+        // Clear the task to allow future updates
+        updateProductStatusTask = nil
+        updateProductStatusContinuation = nil
     }
     
     public func updateAllProductsStatus() async -> [Product] {
         if let task = updateAllProductsStatusTask {
             await task.value
-            return []
+            return self.purchasedAllProducts
         }
         
         let stream = AsyncStream<[Product]> { continuation in
@@ -47,6 +51,10 @@ extension SubscriptionManager {
             productList = products
             break
         }
+        
+        // Clear the task to allow future updates
+        updateAllProductsStatusTask = nil
+        updateAllProductsStatusContinuation = nil
         
         return productList
     }
@@ -87,6 +95,7 @@ extension SubscriptionManager {
                     if subscriptions.isEmpty {
                         let _ =  await requestAllProducts(self.allIdentifiers)
                     }
+
                     if let subscription = subscriptions.first(where: { $0.id == transaction.productID }) {
                         purchasedAllProducts.append(subscription)
                         let status = await transaction.subscriptionStatus

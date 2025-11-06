@@ -285,8 +285,6 @@ public actor AppService {
         } else {
             print(" \(Date()) ⏱️ framework init finished...")
         }
-        
-//        await signForConfigurationFinish()
     }
     
     private func chineseFlow() async {

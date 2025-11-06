@@ -14,6 +14,7 @@ public actor AmplitudeManager {
     
     // MARK: - MethodsforceEventsUpload
     public func configure(apiKey: String, isChinese: Bool, customServerUrl: String?) async {
+        
         let logger = AmplitudeLogger(logLevel: LogLevel.debug.rawValue)
         amplitude = Amplitude(configuration: Configuration(apiKey: apiKey, loggerProvider: logger, autocapture: [.sessions, .networkTracking, .appLifecycles]))
         amplitude.configuration.minTimeBetweenSessionsMillis = 10000 // 0
