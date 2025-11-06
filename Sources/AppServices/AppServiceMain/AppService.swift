@@ -133,7 +133,7 @@ public actor AppService {
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
             return result
         }
-        
+        purchaseManager = SubscriptionManager.shared
         Task {
             let error = await self.purchaseManager?.initialize(allIdentifiers: configuration.paywallDataSource.allOfferingsIDs, proIdentifiers: configuration.paywallDataSource.allProOfferingsIDs)
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
@@ -190,7 +190,7 @@ public actor AppService {
             facebookManager = FacebookManager()
             firebaseManager = FirebaseManager()
             
-            purchaseManager = SubscriptionManager.shared
+            
             
             appsflyerProxy = appsflyerManager
             
@@ -336,10 +336,10 @@ public actor AppService {
             group.addTask { [weak self] in
                 await self?.checkIfReconfigNeeded()
             }
-            
-            group.addTask { [weak self] in
-                await self?.purchaseManager?.updateProductStatus()
-            }
+            #warning("Restore")
+//            group.addTask { [weak self] in
+//                await self?.purchaseManager?.updateProductStatus()
+//            }
         }
         print("handleDidBecomeActiveGroupFinished")
     }

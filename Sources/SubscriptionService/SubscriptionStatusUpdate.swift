@@ -5,27 +5,28 @@ import StoreKit
 extension SubscriptionManager {
     
     public func updateProductStatus() async {
-        if let task = updateProductStatusTask {
-            await task.value
-            return
-        }
-        
-        let stream = AsyncStream<Void> { continuation in
-            self.updateProductStatusContinuation = continuation
-        }
-        
-        let task = Task {
-            await self.internalUpdateProductStatus()
-            self.updateProductStatusContinuation?.finish()
-        }
-        
-        updateProductStatusTask = task
-        
-        for await _ in stream {}
-        
-        // Clear the task to allow future updates
-        updateProductStatusTask = nil
-        updateProductStatusContinuation = nil
+//        if let task = updateProductStatusTask {
+//            await task.value
+//            return
+//        }
+//        
+//        let stream = AsyncStream<Void> { continuation in
+//            self.updateProductStatusContinuation = continuation
+//        }
+//        
+//        let task = Task {
+//            await self.internalUpdateProductStatus()
+//            self.updateProductStatusContinuation?.finish()
+//        }
+//        
+//        updateProductStatusTask = task
+//        
+//        for await _ in stream {}
+//        
+//        // Clear the task to allow future updates
+//        updateProductStatusTask = nil
+//        updateProductStatusContinuation = nil
+        await internalUpdateProductStatus()
     }
     
     public func updateAllProductsStatus() async -> [Product] {
