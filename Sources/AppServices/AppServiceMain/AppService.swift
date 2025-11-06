@@ -134,6 +134,11 @@ public actor AppService {
             return result
         }
         
+        Task {
+            let error = await self.purchaseManager?.initialize(allIdentifiers: configuration.paywallDataSource.allOfferingsIDs, proIdentifiers: configuration.paywallDataSource.allProOfferingsIDs)
+            await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
+        }
+        
         appsflyerManager = AppfslyerManager(config: configuration.appsflyerConfig)
         
         Task {
@@ -205,12 +210,6 @@ public actor AppService {
                         await self.sendAppEnvironmentProperty()
                         await self.sendFirstLaunchEvent()
                     }
-                }
-                
-                group.addTask { [weak self] in
-                    guard let self = self else { return }
-                    let error = await self.purchaseManager?.initialize(allIdentifiers: configuration.paywallDataSource.allOfferingsIDs, proIdentifiers: configuration.paywallDataSource.allProOfferingsIDs)
-                    await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
                 }
             }
             

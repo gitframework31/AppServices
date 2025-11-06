@@ -38,7 +38,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
     // MARK: updateAllProductStatus locking mechanism
     var updateAllProductsStatusTask: Task<Void, Never>? = nil
     var updateAllProductsStatusContinuation: AsyncStream<[Product]>.Continuation?
-        
+            
     // MARK: initialization
     public func initialize(allIdentifiers: [String], proIdentifiers: [String]) async -> Error? {
         self.allIdentifiers = allIdentifiers
