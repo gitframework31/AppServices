@@ -83,6 +83,9 @@ extension AppService {
     }
 
     public func verifyPremium() async -> VerifyPremiumResult? {
+        if !networkMonitor.isConnected {
+            return .noInternet
+        }
         let result = await purchaseManager?.verifyPremium()
         if case .premium(let product) = result {
             await sendSubscriptionTypeUserProperty(identifier: product.id)

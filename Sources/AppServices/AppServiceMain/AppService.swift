@@ -612,7 +612,7 @@ extension AppService {
         Task {
             await sendConfigurationFinished(status: [:])
         }
-        networkMonitor.stopMonitoring()
+//        networkMonitor.stopMonitoring()
         initialFlowStarted = false
     }
 }

@@ -4,7 +4,7 @@ import StoreKit
 
 extension SubscriptionManager {
     
-    public func updateProductStatus() async {
+    public func updateProductStatus() async -> Bool {
 //        if let task = updateProductStatusTask {
 //            await task.value
 //            return
@@ -26,7 +26,7 @@ extension SubscriptionManager {
 //        // Clear the task to allow future updates
 //        updateProductStatusTask = nil
 //        updateProductStatusContinuation = nil
-        await internalUpdateProductStatus()
+        return await internalUpdateProductStatus()
     }
     
     public func updateAllProductsStatus() async -> [Product] {
@@ -60,16 +60,19 @@ extension SubscriptionManager {
         return productList
     }
     
-    private func internalUpdateProductStatus() async {
+    private func internalUpdateProductStatus() async -> Bool {
         var purchasedConsumables: [Product] = []
         var purchasedNonConsumables: [Product] = []
         var purchasedSubscriptions: [Product] = []
         var purchasedNonRenewableSubscriptions: [Product] = []
         var purchasedAllProducts: [Product] = []
         
+        var isTransactionResultReceived = false
+                
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
+                isTransactionResultReceived = true
                 
                 switch transaction.productType {
                 case .consumable:
@@ -111,12 +114,14 @@ extension SubscriptionManager {
                 debugPrint("❌ failed to update Product Status \(result.debugDescription).")
             }
         }
-        
+                
         self.purchasedConsumables = purchasedConsumables
         self.purchasedNonConsumables = purchasedNonConsumables
         self.purchasedNonRenewables = purchasedNonRenewableSubscriptions
         self.purchasedSubscriptions = purchasedSubscriptions
         self.purchasedAllProducts = purchasedAllProducts
+        
+        return isTransactionResultReceived
     }
     
     private func internalUpdateAllProductsStatus() async -> [Product] {

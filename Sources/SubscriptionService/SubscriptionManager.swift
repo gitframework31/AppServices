@@ -48,7 +48,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
         
         let result = await self.requestAllProducts(allIdentifiers)
         
-        await self.updateProductStatus()
+        let isFinished = await self.updateProductStatus()
         
         switch result {
         case .success(_):
@@ -181,7 +181,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
     
     // MARK: Verify premium status
     public func verifyPremium() async -> StoreKitVerifyPremiumResult {
-        await updateProductStatus()
+        let isFinished = await updateProductStatus()
         
         var statuses:[StoreKitPremiumProduct] = []
         
