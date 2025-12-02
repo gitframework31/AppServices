@@ -77,16 +77,14 @@ Implement the [`AppConfigurationProtocol`](Sources/AppServices/Protocols/AppServ
 ```swift
 import AppServices
 
-class AppConfiguration: AppConfigurationProtocol {
-    var appSettings: AppSettingsProtocol { return AppSettings() }
-    var remoteConfigDataSource: any AppRemoteConfigProtocol { return RemoteConfigDataSource() }
-    var amplitudeDataSource: any AnalyticsConfigurationProtocol { return AmplitudeDataSource() }
-    var paywallDataSource: any AppPaywallDataProtocol { return PaywallDataSource() }
-    var attServerData: any AttributionDataProtocol { return AttributionDataSource() }
-    var sentryConfigDataSource: (any SentryDataSourceProtocol)? { return SentryDataSource() }
-    
-    var useDefaultATTRequest: Bool { return true }
-    var configurationTimeout: Int { return 6 }
+struct AppCoreConfiguration: AppConfigurationProtocol {
+    var sentryConfigDataSource: (any AppServices.SentryDataSourceProtocol)? = SentryDataSource()
+    var attServerData: any AttributionDataProtocol = AppAttDataSource()
+    var appSettings: AppSettingsProtocol = AppSettings()
+    var remoteConfigDataSource: any AppRemoteConfigProtocol = AppRemoteConfigDataSource()
+    var amplitudeDataSource: any AnalyticsConfigurationProtocol = AppAnalyticsDataSource()
+    var useDefaultATTRequest = true
+    var paywallDataSource: any AppPaywallDataProtocol = AppPaywallDataSource()
 }
 ```
 
@@ -126,24 +124,46 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, 
                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        let configuration = AppConfiguration()
-        
         Task {
-            await AppService.shared.application(
-                application,
-                didFinishLaunchingWithOptions: launchOptions,
-                appServiceConfig: configuration
-            ) { result in
-                switch result {
-                case .finished:
-                    print("AppServices configured successfully")
-                case .noInternet:
-                    print("No internet connection - will retry when available")
-                }
+            let stream = await AppService.shared.startAppServices(application, launchOptions, AppCoreConfiguration())
+            for await status in stream {
+                print("StreamListener: \(status)")
+                await AppCoreManager.shared.finished(result: status)
             }
         }
         
         return true
+    }
+}
+
+// AppCoreManager's implementation example
+
+class AppCoreManager {
+    static var shared = AppCoreManager()
+    
+    var configurationFinished: Bool = false
+    var configurationResult: AppServiceResult?
+    
+    private init() {}
+    
+    public func finished(result: AppServiceResult?) async {
+        let userInfo = await AppService.shared.getUserInfo()
+        print("UserInfo - \(userInfo)")
+    
+        if userInfo?.userSource == .test_premium {
+            // storage?.isPremiumUser = true
+        }
+        
+        configurationResult = result
+        configurationFinished = true
+    }
+    
+    public func updated(newResult: AppServiceResult?) async {
+        let userInfo = await AppService.shared.getUserInfo()
+        if userInfo?.userSource == .test_premium {
+            // storage?.isPremiumUser = true
+        }
+        configurationResult = newResult
     }
 }
 ```
@@ -155,24 +175,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 func application(_ app: UIApplication, 
                 open url: URL, 
                 options: [UIApplication.OpenURLOptionsKey : Any]) -> Bool {
-    Task {
-        return await AppService.shared.application(app, open: url, options: options)
-    }
+        Task {
+            _ = await AppService.shared.application(app, url, options)
+        }
+        return true
 }
 
 // Handle push notifications
 func application(_ application: UIApplication, 
                 didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    Task {
-        await AppService.shared.application(application, 
-                                          didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
-    }
+        Task {
+            await AppService.shared.application(application, deviceToken)
+        }
 }
 
 // Handle ATT permission changes
 func handleATTPermission(_ status: ATTrackingManager.AuthorizationStatus) {
     Task {
         await AppService.shared.handleATTPermission(status)
+    }
+}
+
+// Handle didReceiveRemoteNotification
+func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    Task {
+        let sendable = SendableUserInfo(value: userInfo)
+        await AppService.shared.application(application, sendable, completionHandler)
     }
 }
 ```
