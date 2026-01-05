@@ -17,8 +17,8 @@ extension AppService {
     }
     
     func sendAttEvent(answer: Bool) async {
-        async let sendAttProperty = sendATTProperty(answer: answer)
-        async let logAtt = InternalAnalyticsEvent.att_permission.log(answer: answer)
+        async let sendAttProperty: Void = sendATTProperty(answer: answer)
+        async let logAtt: Void = InternalAnalyticsEvent.att_permission.log(answer: answer)
         _ = await (sendAttProperty, logAtt)
         await analyticsManager?.forceUploadEvents()
     }
@@ -28,19 +28,19 @@ extension AppService {
     }
     //
     func sendConfigurationDelayed(status: [String: String]) async {
-        let internetStatus = ["connection": "\(networkMonitor.isConnected ?? false)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
+        let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         await InternalAnalyticsEvent.framework_start_delayed.log(params: status+internetStatus)
         await analyticsManager?.forceUploadEvents()
     }
     //
     func sendConfigurationStarted(status: [String: String]) async {
-        let internetStatus = ["connection": "\(networkMonitor.isConnected ?? false)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
+        let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         await InternalAnalyticsEvent.framework_attribution_started.log(params: status+internetStatus)
         await analyticsManager?.forceUploadEvents()
     }
     //
     func sendUserAttribution(userAttribution: [String: String], status: [String: String]) async {
-        let internetStatus = ["connection": "\(networkMonitor.isConnected ?? false)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
+        let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
         guard userAttribution.isEmpty == false else {
             await InternalAnalyticsEvent.framework_attribution.log(params: status+internetStatus)
@@ -48,25 +48,25 @@ extension AppService {
             return
         }
                 
-        async let setUserProps = InternalUserProperty.set(userProperties: userAttribution)
-        async let logFrameAttribution = InternalAnalyticsEvent.framework_attribution.log(params: userAttribution+status+internetStatus)
+        async let setUserProps: Void = InternalUserProperty.set(userProperties: userAttribution)
+        async let logFrameAttribution: Void = InternalAnalyticsEvent.framework_attribution.log(params: userAttribution+status+internetStatus)
         _ = await (setUserProps, logFrameAttribution)
         await analyticsManager?.forceUploadEvents()
     }
     //
     func sendUserAttributionUpdate(userAttribution: [String: String]) async {
-        let internetStatus = ["connection": "\(networkMonitor.isConnected ?? false)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
+        let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
         guard userAttribution.isEmpty == false else { return }
         
-        async let setUserProps =  InternalUserProperty.set(userProperties: userAttribution)
-        async let logFrameAttribution = InternalAnalyticsEvent.framework_attribution_update.log(params: userAttribution+internetStatus)
+        async let setUserProps: Void = InternalUserProperty.set(userProperties: userAttribution)
+        async let logFrameAttribution: Void = InternalAnalyticsEvent.framework_attribution_update.log(params: userAttribution+internetStatus)
         _ = await (setUserProps, logFrameAttribution)
         await analyticsManager?.forceUploadEvents()
     }
     //
     func sendConfigurationFinished(status: [String: String]) async {
-        let internetStatus = ["connection": "\(networkMonitor.isConnected ?? false)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
+        let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
         await InternalAnalyticsEvent.framework_finished.log(params: status+internetStatus)
         await analyticsManager?.forceUploadEvents()

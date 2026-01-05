@@ -321,7 +321,7 @@ public actor AppService {
     
     private func handleDidBecomeActive() async {
         if self.configuration?.useDefaultATTRequest == true {
-            await self.requestATT()
+            await requestATT()
         }
         
         await withTaskGroup(of: Void.self) { group in
@@ -376,24 +376,31 @@ public actor AppService {
         }
     }
     
+    @MainActor
+    private func performATTRequest() async -> ATTrackingManager.AuthorizationStatus {
+        return await ATTrackingManager.requestTrackingAuthorization()
+    }
+    
     func requestATT() async {
         let attStatus = ATTrackingManager.trackingAuthorizationStatus
         guard attStatus == .notDetermined else {
             await sendATTProperty(answer: attStatus == .authorized)
-            
             guard attAnswered == false else { return }
             attAnswered = true
             await handleATTAnswered(attStatus)
             return
         }
         
-        Task { [weak self] in
-            guard let self else { return }
+        let timeoutTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+            guard let self else { return }
             await self.performATTTimeoutFallback()
         }
         
-        let status = await ATTrackingManager.requestTrackingAuthorization()
+        let status = await performATTRequest()
+        
+        timeoutTask.cancel()
+        
         guard attAnswered == false else { return }
         attAnswered = true
         await sendAttEvent(answer: status == .authorized)
