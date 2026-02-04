@@ -25,7 +25,9 @@ public actor AppService {
     }
     
     public static var fcmToken: String? {
-        return FirebaseService.shared.fcmToken
+        get async {
+            return await FirebaseService.shared.fcmToken
+        }
     }
     
     public static var sentry:SentryServicePublicProtocol {
@@ -394,7 +396,7 @@ public actor AppService {
             await appsflyerManager?.setCustomerUserID(id)
             await purchaseManager?.setUserID(id)
             await facebookManager?.setUserID(id)
-            firebaseManager.configure(id: id)
+            await firebaseManager.configure(id: id)
             sentryManager?.setUserID(id)
             await analyticsManager?.setUserID(id)
             remoteConfigManager?.configure(configuration?.remoteConfigDataSource.allConfigs ?? []) {
@@ -732,7 +734,7 @@ extension AppService {
     }
     
     private func sendFCMTokenIfAvailable(userId: String) async {
-        guard let fcmToken = FirebaseService.shared.fcmToken else {
+        guard let fcmToken = await FirebaseService.shared.fcmToken else {
             return
         }
         
