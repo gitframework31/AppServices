@@ -100,9 +100,9 @@ public actor AppService {
             Task { await self?.cancelAndClear() }
         }
         
-        workTask = Task { [weak self] in
-            guard let self else { return }
-        }
+        //        workTask = Task { [weak self] in
+        //            guard let self else { return }
+        //        }
         
         let environmentVariables = ProcessInfo.processInfo.environment
         
@@ -111,6 +111,10 @@ public actor AppService {
         }
         
         func handleTestEnvironment(envVariables: [String: String]) async -> AppServiceResult {
+            if let _ = environmentVariables["xctest_remote_config_enabled"] {
+                remoteConfigManager = RemoteConfigurationManager(deploymentKey: configuration.appSettings.amplitudeDeploymentKey,
+                                                                 userInfo: [InternalUserProperty.app_environment.key: AppEnvironment.current.rawValue])
+            }
             if let xc_screen_style_full = environmentVariables["xc_screen_style_full"] {
                 let screen_style_full = configuration.remoteConfigDataSource.allConfigs.first(where: {$0.key == "subscription_screen_style_full"})
                 screen_style_full?.updateValue(xc_screen_style_full)
@@ -133,7 +137,9 @@ public actor AppService {
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
             return result
         }
+        
         purchaseManager = SubscriptionManager.shared
+        
         Task {
             let error = await self.purchaseManager?.initialize(allIdentifiers: configuration.paywallDataSource.allOfferingsIDs, proIdentifiers: configuration.paywallDataSource.allProOfferingsIDs)
             await AppServicesStatus.shared.updateStatus(.completed(error), for: .subscription)
@@ -185,11 +191,9 @@ public actor AppService {
             }
             
             configuration.appSettings.launchCount += 1
-
+            
             facebookManager = FacebookManager()
             firebaseManager = FirebaseManager()
-            
-            
             
             appsflyerProxy = appsflyerManager
             
@@ -217,9 +221,30 @@ public actor AppService {
         
         if verifyTestEnvironment(envVariables: environmentVariables) {
             isConfigured = true
-            Task {
-                let result = await handleTestEnvironment(envVariables: environmentVariables)
-                emit(result)
+
+            if environmentVariables["xctest_remote_config_enabled"] != nil {
+                Task {
+                    await remoteConfigManager?.updateRemoteConfig([:]) { [weak self] in
+                        guard let self else { return }
+                        Task {
+                            await self.remoteConfigManager?.configure(
+                                self.configuration?.remoteConfigDataSource.allConfigs ?? []
+                            ) {
+                                Task {
+                                    let error = await self.remoteConfigManager?.remoteError
+                                    await AppServicesStatus.shared.updateStatus(.completed(error), for: .remoteConfig)
+                                    let result = await handleTestEnvironment(envVariables: environmentVariables)
+                                    await self.emit(result)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Task {
+                    let result = await handleTestEnvironment(envVariables: environmentVariables)
+                    emit(result)
+                }
             }
         }
         
@@ -264,7 +289,7 @@ public actor AppService {
             await self.handleAttributionFinish(isUpdated: false)
             await signForConfigurationFinish()
         }
-
+        
         let timedOut = await withTaskCancellationHandler {
             do {
                 try await Task.sleep(nanoseconds: UInt64(timeoutDuration * 1_000_000_000))
@@ -276,7 +301,7 @@ public actor AppService {
         } onCancel: {
             task.cancel()
         }
-
+        
         if timedOut {
             print(" \(Date()) ⏱️ framework timeout after \(timeoutDuration) seconds")
             await signForConfigurationFinish()
@@ -335,10 +360,6 @@ public actor AppService {
             group.addTask { [weak self] in
                 await self?.checkIfReconfigNeeded()
             }
-            #warning("Restore")
-//            group.addTask { [weak self] in
-//                await self?.purchaseManager?.updateProductStatus()
-//            }
         }
         print("handleDidBecomeActiveGroupFinished")
     }
@@ -603,7 +624,6 @@ extension AppService {
 extension AppService {
     func handlePossibleAttributionUpdate() async {
         Task {
-            // let _ = try? await appsflyerManager?.getDeepLinkInfo(timeout: 10)//???? think about later
             await handleAttributionFinish(isUpdated: true)
         }
     }
@@ -618,7 +638,6 @@ extension AppService {
         Task {
             await sendConfigurationFinished(status: [:])
         }
-//        networkMonitor.stopMonitoring()
         initialFlowStarted = false
     }
 }
