@@ -13,6 +13,7 @@ public class SentryService: SentryServiceProtocol, SentryServicePublicProtocol {
                 
                 options.dsn = data.dsn
                 options.debug = data.debug
+                options.enableLogs = data.enableLogs
                 options.diagnosticLevel = SentryLevel(rawValue: data.diagnosticLevel) ?? .debug
                 options.appHangTimeoutInterval = data.appHangTimeoutInterval
                 options.enableAppHangTracking = data.enableAppHangTracking
@@ -46,7 +47,7 @@ public class SentryService: SentryServiceProtocol, SentryServicePublicProtocol {
                 }
                 
                 options.tracesSampleRate = NSNumber(value: data.tracesSampleRate)
-                options.profilesSampleRate = NSNumber(value: data.profilesSampleRate)
+//                options.profilesSampleRate = NSNumber(value: data.profilesSampleRate)
                 options.enableCaptureFailedRequests = data.shouldCaptureHttpRequests
                 
                 let httpStatusCodeRange = HttpStatusCodeRange(min: data.httpCodesRange.lowerBound, max: data.httpCodesRange.length)

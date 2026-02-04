@@ -4,7 +4,7 @@ import RemoteConfigService
 
 import Foundation
 
-enum InternalRemoteConfig: String, AppRemoteConfigurable {
+enum InternalRemoteConfig: String, AppRemoteConfigurable {    
     case subscription_screen_style_full
     case subscription_screen_style_h
     case rate_us_primary_shown
@@ -15,12 +15,16 @@ enum InternalRemoteConfig: String, AppRemoteConfigurable {
     
     case ab_paywall
     
+    case minimal_supported_app_version
+    
     var key: String { return rawValue }
     
     var defaultValue: String {
         switch self {
         case .ab_paywall:
             return "none"
+        case .minimal_supported_app_version:
+            return "0"
         default:
             return ""
         }

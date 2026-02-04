@@ -178,7 +178,6 @@ public actor AppService {
                 let sentryConfig = SentryServiceConfig(dsn: sentryDataSource.dsn,
                                                        debug: sentryDataSource.debug,
                                                        tracesSampleRate: sentryDataSource.tracesSampleRate,
-                                                       profilesSampleRate: sentryDataSource.profilesSampleRate,
                                                        shouldCaptureHttpRequests: sentryDataSource.shouldCaptureHttpRequests,
                                                        httpCodesRange: sentryDataSource.httpCodesRange,
                                                        handledDomains: sentryDataSource.handledDomains)

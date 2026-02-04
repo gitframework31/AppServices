@@ -3,6 +3,7 @@ import Foundation
 public protocol SentryDataSourceProtocol: AnyObject {
     var dsn: String { get }
     var debug: Bool { get }
+    var enableLogs: Bool { get }
     var tracesSampleRate: Float { get }
     var profilesSampleRate: Float { get }
     var shouldCaptureHttpRequests: Bool { get }
@@ -22,6 +23,10 @@ public extension SentryDataSourceProtocol {
     
     var shouldCaptureHttpRequests: Bool {
         return true
+    }
+    
+    var enableLogs: Bool {
+        return false
     }
     
     var httpCodesRange: NSRange {

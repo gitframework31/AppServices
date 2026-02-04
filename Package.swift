@@ -53,7 +53,7 @@ let package = Package(
         .package(url: "https://github.com/amplitude/analytics-connector-ios.git", from: "1.0.0"),
         .package(url: "https://github.com/amplitude/Amplitude-Swift", from: "1.14.0"),
         .package(url: "https://github.com/amplitude/experiment-ios-client", from: "1.13.5"),
-        .package(url: "https://github.com/getsentry/sentry-cocoa.git", from: "8.57.0"),
+        .package(url: "https://github.com/getsentry/sentry-cocoa.git", from: "9.0.0"),
     ],
     targets: [
         .target(name: "AppServices",

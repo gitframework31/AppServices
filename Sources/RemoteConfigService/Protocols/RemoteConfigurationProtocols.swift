@@ -17,4 +17,5 @@ public protocol RemoteConfigManager {
     
     func getValue(forConfig config: any RemoteConfigurable) -> String?
     func exposure(forConfig config: RemoteConfigurable)
+    func getPayload(forConfig config: any RemoteConfigurable) -> [String: Any]?
 }

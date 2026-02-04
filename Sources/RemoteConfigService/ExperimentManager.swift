@@ -83,10 +83,13 @@ public class ExperimentManager {
 
 extension ExperimentManager: RemoteConfigManager {
     public func getValue(forConfig config: RemoteConfigurable) -> String? {
-        let payload = client.variant(config.key, fallback: Variant(config.defaultValue)).payload as? [String: String]
-        let payloadValue = payload?.first?.value
         let value = client.variant(config.key, fallback: Variant(config.defaultValue)).value
-        return payloadValue ?? value
+        return value
+    }
+    
+    public func getPayload(forConfig config: any RemoteConfigurable) -> [String : Any]? {
+        let payload = client.variant(config.key, fallback: Variant(config.defaultValue)).payload as? [String: Any]
+        return payload
     }
     
     public func exposure(forConfig config: RemoteConfigurable) {
