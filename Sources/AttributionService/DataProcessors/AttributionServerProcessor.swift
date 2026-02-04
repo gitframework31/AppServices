@@ -6,12 +6,14 @@ public class AttributionServerProcessor {
     let purchaseServerURLPath: String
     let installPath: String
     let purchasePath: String
+    let tokensPath: String
     
-    init(installServerURLPath: String, purchaseServerURLPath: String, installPath: String, purchasePath: String) {
+    init(installServerURLPath: String, purchaseServerURLPath: String, installPath: String, purchasePath: String, tokensPath: String) {
         self.installServerURLPath = installServerURLPath
         self.purchaseServerURLPath = purchaseServerURLPath
         self.installPath = installPath
         self.purchasePath = purchasePath
+        self.tokensPath = tokensPath
     }
     
     fileprivate var isSyncingInstall = false
@@ -24,6 +26,12 @@ public class AttributionServerProcessor {
     
     fileprivate var subscribeURL: URL? {
         let urlPath = "\(purchaseServerURLPath)\(purchasePath)"
+        let urlOrNil = URL(string: urlPath)
+        return urlOrNil
+    }
+    
+    fileprivate var tokensURL: URL? {
+        let urlPath = "\(installServerURLPath)\(tokensPath)"
         let urlOrNil = URL(string: urlPath)
         return urlOrNil
     }
@@ -86,7 +94,7 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
         isSyncingInstall = true
         defer { isSyncingInstall = false }
 
-        var request = createRequest(url: url, body: jsonData, authToken: authToken)
+        let request = createRequest(url: url, body: jsonData, authToken: authToken)
         let taskSession = isBackgroundSession ? waitingSession : session
 
         do {
@@ -143,4 +151,48 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
              return false
          }
     }
+    
+    func sendFCMToken(parameters: FCMTokenRequestModel, authToken: String,
+                      isBackgroundSession: Bool = false,
+                      completion: @escaping ((Bool) -> Void)) {
+        let jsonDataOrNil = try? JSONEncoder().encode(parameters)
+        
+        guard let url = tokensURL, let jsonData = jsonDataOrNil else {
+            print("\n\n\nFCM TOKEN SEND ERROR\n\n\n")
+            completion(false)
+            return
+        }
+        
+        let request = createRequest(url: url, body: jsonData, authToken: authToken)
+        
+        let taskSession: URLSession
+        if isBackgroundSession {
+            taskSession = waitingSession
+        } else {
+            taskSession = session
+        }
+        
+        let task = taskSession.dataTask(with: request) { (data, response, error) in
+            if let _ = error {
+                self.handleServerError()
+                
+                if taskSession.configuration.waitsForConnectivity == false {
+                    self.sendFCMToken(parameters: parameters, authToken: authToken,
+                                     isBackgroundSession: true, completion: completion)
+                }
+                
+                completion(false)
+                return
+            }
+            
+            guard let _ = data else {
+                completion(false)
+                return
+            }
+            
+            completion(true)
+        }
+        task.resume()
+    }
+    
 }

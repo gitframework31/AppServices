@@ -10,6 +10,7 @@ import SubscriptionService
 import AmplitudeService
 import RemoteConfigService
 import SentryService
+import FirebaseService
 #endif
 import AppTrackingTransparency
 
@@ -21,6 +22,10 @@ public actor AppService {
         get async {
             return await AttributionManager.shared.uniqueUserID
         }
+    }
+    
+    public static var fcmToken: String? {
+        return FirebaseService.shared.fcmToken
     }
     
     public static var sentry:SentryServicePublicProtocol {
@@ -63,7 +68,7 @@ public actor AppService {
     var remoteConfigManager: RemoteConfigManager?
     var analyticsManager: AmplitudeManager?
     var sentryManager: SentryServiceProtocol?
-    var firebaseManager: FirebaseManager?
+    var firebaseManager: FirebaseService = FirebaseService.shared
     
     var idConfigured = false
     
@@ -162,6 +167,7 @@ public actor AppService {
             
             let installPath = "/install-application"
             let purchasePath = "/subscribe"
+            let tokensPath = "/tokens"
             let installURLPath = configuration.attServerData.installPath
             let purchaseURLPath = configuration.attServerData.purchasePath
             
@@ -172,7 +178,8 @@ public actor AppService {
                                                                  purchasePath: purchasePath,
                                                                  appsflyerID: appsflyerToken,
                                                                  appEnvironment: AppEnvironment.current.rawValue,
-                                                                 facebookData: facebookData)
+                                                                 facebookData: facebookData,
+                                                                 tokensPath: tokensPath)
             
             await AttributionManager.shared.configure(config: attributionConfiguration)
         }
@@ -193,7 +200,6 @@ public actor AppService {
             configuration.appSettings.launchCount += 1
             
             facebookManager = FacebookManager()
-            firebaseManager = FirebaseManager()
             
             appsflyerProxy = appsflyerManager
             
@@ -260,6 +266,10 @@ public actor AppService {
             NotificationCenter.default.addObserver(forName:  UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
                 guard let self else { return }
                 Task { await self.initialFlow() }
+            }
+            NotificationCenter.default.addObserver(forName:  NSNotification.Name("FCMTokenUpdated"), object: nil, queue: .main) { [weak self] notification in
+                guard let self else { return }
+                Task { await self.handleFCMTokenUpdate(notification) }
             }
             
             initialFlow()
@@ -384,7 +394,7 @@ public actor AppService {
             await appsflyerManager?.setCustomerUserID(id)
             await purchaseManager?.setUserID(id)
             await facebookManager?.setUserID(id)
-            firebaseManager?.configure(id: id)
+            firebaseManager.configure(id: id)
             sentryManager?.setUserID(id)
             await analyticsManager?.setUserID(id)
             remoteConfigManager?.configure(configuration?.remoteConfigDataSource.allConfigs ?? []) {
@@ -488,6 +498,7 @@ extension AppService {
     func handleAttributionInstall() async {
         let installPath = "/install-application"
         let purchasePath = "/subscribe"
+        let tokensPath = "/tokens"
         
         let installURLPath = await InternalRemoteConfig.install_server_path.internalValue
         let purchaseURLPath = await InternalRemoteConfig.purchase_server_path.internalValue
@@ -495,7 +506,8 @@ extension AppService {
             let attributionConfiguration = AttributionConfigURLs(installServerURLPath: installURLPath,
                                                                  purchaseServerURLPath: purchaseURLPath,
                                                                  installPath: installPath,
-                                                                 purchasePath: purchasePath)
+                                                                 purchasePath: purchasePath,
+                                                                 tokensPath: tokensPath)
             
             await AttributionManager.shared.configureURLs(config: attributionConfiguration)
         } else {
@@ -506,7 +518,8 @@ extension AppService {
                 let attributionConfiguration = AttributionConfigURLs(installServerURLPath: installURLPath,
                                                                      purchaseServerURLPath: purchaseURLPath,
                                                                      installPath: installPath,
-                                                                     purchasePath: purchasePath)
+                                                                     purchasePath: purchasePath,
+                                                                     tokensPath: tokensPath)
                 
                 await AttributionManager.shared.configureURLs(config: attributionConfiguration)
             } else {
@@ -707,4 +720,27 @@ extension AppService {
             await self.appsflyerManager?.logTrialPurchase()
         }
     }
+    
+    private func handleFCMTokenUpdate(_ notification: Notification) {
+        if let userInfo = notification.userInfo {
+            if let userId = userInfo["userId"] as? String {
+                Task {
+                    await sendFCMTokenIfAvailable(userId:userId)
+                }
+            }
+        }
+    }
+    
+    private func sendFCMTokenIfAvailable(userId: String) async {
+        guard let fcmToken = FirebaseService.shared.fcmToken else {
+            return
+        }
+        
+        let localization = Locale.current.identifier
+        await AttributionManager.shared.checkAndSendSavedFCMToken(fcmToken: fcmToken, userId: userId, localization: localization) { result in
+            print("FCM token sent successfully - \(result)")
+        }
+        self.emit(.fcmToken(fcmToken))
+    }
+    
 }

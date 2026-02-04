@@ -8,4 +8,8 @@ internal protocol AttributionServerProcessorProtocol {
                                userId: AttributionUserUUID,
                                authToken: AttributionServerToken,
                                isBackgroundSession: Bool) async -> Bool
+    func sendFCMToken(parameters: FCMTokenRequestModel,
+                      authToken: AttributionServerToken,
+                      isBackgroundSession: Bool,
+                      completion: @escaping ((Bool) -> Void))
 }

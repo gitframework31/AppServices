@@ -30,6 +30,10 @@ let package = Package(
             targets: ["RemoteConfigService"]
         ),
         .library(
+            name: "FirebaseService",
+            targets: ["FirebaseService"]
+        ),
+        .library(
             name: "AttributionService",
             targets: ["AttributionService"]
         ),
@@ -47,7 +51,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.0.0"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "11.0.0"),
         .package(url: "https://github.com/facebook/facebook-ios-sdk", from: "17.0.0"),
         .package(url: "https://github.com/AppsFlyerSDK/AppsFlyerFramework-Dynamic", from: "6.0.0"),
         .package(url: "https://github.com/amplitude/analytics-connector-ios.git", from: "1.0.0"),
@@ -62,6 +66,7 @@ let package = Package(
                     "AppsflyerService",
                     "FacebookService",
                     "RemoteConfigService",
+                    "FirebaseService",
                     "AttributionService",
                     "SentryService",
                     "SubscriptionService",
@@ -98,10 +103,19 @@ let package = Package(
                     .linkedFramework("UIKit", .when(platforms: [.iOS])),
                 ]
                ),
+        .target(name: "FirebaseService",
+                dependencies: [
+                    .product(name: "FirebaseAnalytics", package: "firebase-ios-sdk"),
+                    .product(name: "FirebaseMessaging", package: "firebase-ios-sdk"),
+                ],
+                path: "Sources/FirebaseService",
+                linkerSettings: [
+                  .linkedFramework("UIKit", .when(platforms: [.iOS])),
+                ]
+        ),
         .target(name: "RemoteConfigService",
                 dependencies: [
-                    .product(name: "Experiment", package: "experiment-ios-client"),
-                    .product(name: "FirebaseAnalytics", package: "firebase-ios-sdk"),
+                    .product(name: "Experiment", package: "experiment-ios-client")
                 ],
                 path: "Sources/RemoteConfigService",
                 linkerSettings: [

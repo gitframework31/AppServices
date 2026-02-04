@@ -209,6 +209,31 @@ public actor AttributionManager {
         
         return result
     }
+    
+    fileprivate func sendFCMToken(userId: String, fcmToken: String, localization: String, completion: @escaping (Bool) -> Void) {
+        let parameters = FCMTokenRequestModel(userId: userId, fcmToken: fcmToken, localization: localization)
+        
+        serverProcessor?.sendFCMToken(parameters: parameters,
+                                   authToken: authorizationToken,
+                                   isBackgroundSession: false) { success in
+            if success {
+                self.udProcessor.saveFCMToken(fcmToken)
+            }
+            completion(success)
+        }
+    }
+    
+    public func checkAndSendSavedFCMToken(fcmToken: String, userId: String, localization: String, completion: @escaping (FcmTokenUpdateResult) -> Void) {
+        let savedToken = udProcessor.getFCMToken()
+        if savedToken != fcmToken {
+            sendFCMToken(userId: userId, fcmToken: fcmToken, localization: localization) { success in
+                completion(success ? .updated : .failed)
+            }
+        }else{
+            completion(.notRequired)
+        }
+    }
+    
 }
 
 extension AttributionManager: AttributionManagerProtocol {
@@ -232,14 +257,16 @@ extension AttributionManager: AttributionManagerProtocol {
         serverProcessor = AttributionServerProcessor(installServerURLPath: config.installServerURLPath,
                                                        purchaseServerURLPath: config.purchaseServerURLPath,
                                                        installPath: config.installPath,
-                                                       purchasePath: config.purchasePath)
+                                                     purchasePath: config.purchasePath,
+                                                     tokensPath: config.tokensPath)
     }
     
     public func configureURLs(config: AttributionConfigURLs) async {
         serverProcessor = AttributionServerProcessor(installServerURLPath: config.installServerURLPath,
                                                purchaseServerURLPath: config.purchaseServerURLPath,
                                                installPath: config.installPath,
-                                               purchasePath: config.purchasePath)
+                                                     purchasePath: config.purchasePath,
+                                                     tokensPath: config.tokensPath)
     }
     
     public func syncOnAppStart() async -> AttributionManagerResult? {
@@ -272,4 +299,5 @@ extension AttributionManager: AttributionManagerProtocol {
         
         await checkAndSendPurchase(data)
     }
+    
 }

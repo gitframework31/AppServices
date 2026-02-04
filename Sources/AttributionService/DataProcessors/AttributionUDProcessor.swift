@@ -9,6 +9,7 @@ class AttributionUDProcessor: AttributionUDProcessorProtocol {
     fileprivate let purchaseDataKey = "ANALYTICS_PURCHASE_DATA"
     fileprivate let generatedTokenKey = "ANALYTICS_GENERATED_TOKEN"
     fileprivate let installResult = "ANALYTICS_INSTALL_RESULT"
+    fileprivate let fcmTokenKey = "ANALYTICS_FCM_TOKEN"
     
     func getInstallData() -> AttributionInstallRequestModel? {
         let dataOrNil = userDefaults.object(forKey: installDataKey) as? Data
@@ -90,6 +91,15 @@ class AttributionUDProcessor: AttributionUDProcessorProtocol {
     
     func deleteSavedPurchaseData() {
         userDefaults.removeObject(forKey: purchaseDataKey)
+        userDefaults.synchronize()
+    }
+    
+    func getFCMToken() -> String? {
+        return userDefaults.string(forKey: fcmTokenKey)
+    }
+    
+    func saveFCMToken(_ token: String) {
+        userDefaults.set(token, forKey: fcmTokenKey)
         userDefaults.synchronize()
     }
 }
