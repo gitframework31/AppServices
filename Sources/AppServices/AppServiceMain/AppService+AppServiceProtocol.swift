@@ -26,6 +26,7 @@ extension AppService: AppServiceProtocol {
     
     public func application(_ application: UIApplication, _ deviceToken: Data) async {
         appsflyerManager?.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+        firebaseManager.registerForRemoteNotifications(deviceToken: deviceToken)
     }
     
     public func application(_ application: UIApplication, _ userInfo: SendableUserInfo, _ completionHandler: @escaping (UIBackgroundFetchResult) -> Void) async {
