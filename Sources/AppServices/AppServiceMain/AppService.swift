@@ -574,6 +574,7 @@ extension AppService {
             } else {
                 if isUpdated {
                     await sendUserAttributionUpdate(userAttribution: attributionDict)
+                    emit(.updated(attributionDict))
                 } else {
                     await sendUserAttribution(userAttribution: attributionDict, status: [:])
                 }
