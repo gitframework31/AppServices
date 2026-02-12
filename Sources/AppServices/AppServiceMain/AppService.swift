@@ -502,8 +502,9 @@ extension AppService {
         let purchasePath = "/subscribe"
         let tokensPath = "/tokens"
         
-        let installURLPath = await InternalRemoteConfig.install_server_path.internalValue
-        let purchaseURLPath = await InternalRemoteConfig.purchase_server_path.internalValue
+        
+        let installURLPath = await (InternalRemoteConfig.install_server_path.internalPayload?.first?.value as? String) ?? ""
+        let purchaseURLPath = await (InternalRemoteConfig.purchase_server_path.internalPayload?.first?.value as? String) ?? ""
         if installURLPath != "" && purchaseURLPath != "" {
             let attributionConfiguration = AttributionConfigURLs(installServerURLPath: installURLPath,
                                                                  purchaseServerURLPath: purchaseURLPath,
