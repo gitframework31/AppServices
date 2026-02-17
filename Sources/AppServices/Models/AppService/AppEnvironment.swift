@@ -24,7 +24,6 @@ public enum AppEnvironment: String {
             return .AppStore
         }
     }
-//    public static var isChina: Bool = true
 
     public static var isChina: Bool = {
         if #available(iOS 16, *) {
