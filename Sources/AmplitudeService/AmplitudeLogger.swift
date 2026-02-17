@@ -32,22 +32,20 @@ class AmplitudeLogger: Logger {
     func error(message: String) {
         let error: Error = AmplitudeError.error(message: message)
         
-        print("⚠️ [Amplitude Error] \(error.localizedDescription)")
+        print("[AppServices] ⚠️ [Amplitude Error] \(error.localizedDescription)")
         AmplitudeLogger.eventContinuation?.yield(error)
     }
     
     func warn(message: String) {
-        print("⚠️ [Amplitude Warn] \(message)")
+        print("[AppServices] ⚠️ [Amplitude Warn] \(message)")
     }
     
     func log(message: String) {
-        //Start flushing 7 events
-        print("⚠️ [Amplitude Log] \(message)")
+        print("[AppServices] ⚠️ [Amplitude Log] \(message)")
     }
     
     func debug(message: String) {
-        //Network connectivity changed to offline.
-        print("⚠️ [Amplitude Debug] \(message)")
+        print("[AppServices] ⚠️ [Amplitude Debug] \(message)")
     }
 }
 

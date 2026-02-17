@@ -39,6 +39,6 @@ public actor StatusManager {
     }
 
     private func logStatusChange(manager: ServiceType, status: ServiceStatus) {
-        print("AppServicesStatus for: \(manager) → \(status)")
+        print("[AppServices] Status for: \(manager) → \(status)")
     }
 }

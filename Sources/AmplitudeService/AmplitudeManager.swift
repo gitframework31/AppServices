@@ -17,7 +17,7 @@ public actor AmplitudeManager {
         
         let logger = AmplitudeLogger(logLevel: LogLevel.debug.rawValue)
         amplitude = Amplitude(configuration: Configuration(apiKey: apiKey, loggerProvider: logger, autocapture: [.sessions, .networkTracking, .appLifecycles]))
-        amplitude.configuration.minTimeBetweenSessionsMillis = 10000 // 0
+        amplitude.configuration.minTimeBetweenSessionsMillis = 10000
         
         if let customServerUrl, isChinese {
             amplitude.configuration.serverUrl = customServerUrl
@@ -86,9 +86,9 @@ public actor AmplitudeManager {
         
         if amplitudeDebugPrint {
             if properties.isEmpty {
-                print("Amplitude logged \(event.uppercased())")
+                print("[AppServices] Amplitude logged \(event.uppercased())")
             } else {
-                print("Amplitude logged \(event.uppercased()), properties \(properties)")
+                print("[AppServices] Amplitude logged \(event.uppercased()), properties \(properties)")
             }
         }
     }
@@ -98,7 +98,7 @@ public actor AmplitudeManager {
         amplitude.identify(identify: identify)
         
         if amplitudeDebugPrint {
-            print("Amplitude identified property: \(key.uppercased()), value: \(value)")
+            print("[AppServices] Amplitude identified property: \(key.uppercased()), value: \(value)")
         }
     }
     
@@ -107,7 +107,7 @@ public actor AmplitudeManager {
         amplitude.identify(identify: identify)
         
         if amplitudeDebugPrint {
-            print("Analytics incremented property: \(key.uppercased()), value: \(value)")
+            print("[AppServices] Analytics incremented property: \(key.uppercased()), value: \(value)")
         }
     }
     

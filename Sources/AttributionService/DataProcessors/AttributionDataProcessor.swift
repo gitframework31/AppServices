@@ -50,7 +50,7 @@ class AttributionDataProcessor: AttributionDataProcessorProtocol {
     
     func attributionDetails() async -> AttributionDetails? {
         guard let attToken = try? AAAttribution.attributionToken() else {
-            print("Failed to retrieve AAAttribution.attributionToken()")
+            print("[AppServices] Failed to retrieve AAAttribution.attributionToken()")
             
 #if targetEnvironment(simulator)
             return AttributionDetails(details: ["token": "eyJ2IjoiMS4wIiwiaXAiOiIxOTIuMC4yLjEiLCJkIjoidXNlciIsInRzIjoxNjk1Njg3NjAwfQ=="], attributionToken: "eyJ2IjoiMS4wIiwiaXAiOiIxOTIuMC4yLjEiLCJkIjoidXNlciIsInRzIjoxNjk1Njg3NjAwfQ==")
@@ -78,13 +78,12 @@ class AttributionDataProcessor: AttributionDataProcessorProtocol {
 
             do {
                 let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
-                print(receiptData)
-
+                print("[AppServices] Successfully read receipt data \(receiptData)")
                 let receiptString = receiptData.base64EncodedString(options: [])
                 return receiptString
             }
             catch {
-                print("Couldn't read receipt data with error: " + error.localizedDescription)
+                print("[AppServices] Couldn't read receipt data with error: " + error.localizedDescription)
                 return ""
             }
         }

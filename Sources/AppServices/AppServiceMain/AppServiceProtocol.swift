@@ -73,20 +73,3 @@ public protocol AppServiceProtocol {
     func restoreAll() async -> RestoreResult?
     
 }
-
-public struct UserInfo: Codable {
-    public var userSource: UserNetworkSource
-    public var attrInfo: [String: String]?
-    
-    public init(userSource: UserNetworkSource, attrInfo: [String : String]? = nil) {
-        self.userSource = userSource
-        self.attrInfo = attrInfo
-    }
-}
-
-public struct SendableUserInfo: @unchecked Sendable {
-    public let value: [AnyHashable: Any]
-    public init(value: [AnyHashable : Any]) {
-        self.value = value
-    }
-}

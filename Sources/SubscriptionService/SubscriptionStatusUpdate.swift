@@ -5,27 +5,6 @@ import StoreKit
 extension SubscriptionManager {
     
     public func updateProductStatus() async -> Bool {
-//        if let task = updateProductStatusTask {
-//            await task.value
-//            return
-//        }
-//        
-//        let stream = AsyncStream<Void> { continuation in
-//            self.updateProductStatusContinuation = continuation
-//        }
-//        
-//        let task = Task {
-//            await self.internalUpdateProductStatus()
-//            self.updateProductStatusContinuation?.finish()
-//        }
-//        
-//        updateProductStatusTask = task
-//        
-//        for await _ in stream {}
-//        
-//        // Clear the task to allow future updates
-//        updateProductStatusTask = nil
-//        updateProductStatusContinuation = nil
         return await internalUpdateProductStatus()
     }
     
@@ -53,7 +32,6 @@ extension SubscriptionManager {
             break
         }
         
-        // Clear the task to allow future updates
         updateAllProductsStatusTask = nil
         updateAllProductsStatusContinuation = nil
         
@@ -68,7 +46,7 @@ extension SubscriptionManager {
         var purchasedAllProducts: [Product] = []
         
         var isTransactionResultReceived = false
-                
+        
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
@@ -99,7 +77,7 @@ extension SubscriptionManager {
                     if subscriptions.isEmpty {
                         let _ =  await requestAllProducts(self.allIdentifiers)
                     }
-
+                    
                     if let subscription = subscriptions.first(where: { $0.id == transaction.productID }) {
                         purchasedAllProducts.append(subscription)
                         let status = await transaction.subscriptionStatus
@@ -111,10 +89,10 @@ extension SubscriptionManager {
                     break
                 }
             } catch {
-                debugPrint("❌ failed to update Product Status \(result.debugDescription).")
+                debugPrint("[AppServices] Failed to update Product Status \(result.debugDescription).")
             }
         }
-                
+        
         self.purchasedConsumables = purchasedConsumables
         self.purchasedNonConsumables = purchasedNonConsumables
         self.purchasedNonRenewables = purchasedNonRenewableSubscriptions
@@ -155,7 +133,7 @@ extension SubscriptionManager {
                     break
                 }
             } catch {
-                debugPrint("❌ failed to update All Products Status \(result.debugDescription).")
+                debugPrint("[AppServices] Failed to update All Products Status \(result.debugDescription).")
             }
         }
         

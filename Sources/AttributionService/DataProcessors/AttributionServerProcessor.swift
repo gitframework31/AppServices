@@ -65,6 +65,7 @@ public class AttributionServerProcessor {
     
     fileprivate func handleServerError() {
         print("""
+            [AppServices] 
             \n\n\n
             ==========================
             ATTRIBUTION SERVER DOWN
@@ -83,7 +84,7 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
         
         guard let url = installURL,
               let jsonData = try? JSONEncoder().encode(parameters) else {
-            print("\n\n\nANALYTICS SEND ERROR\n\n\n")
+            print("[AppServices] \n\n\nANALYTICS SEND ERROR\n\n\n")
             return ([:], NSError(domain: "appservices.attribution.internal", code: 400))
         }
         
@@ -127,7 +128,7 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
                                authToken: String, isBackgroundSession: Bool = false) async -> Bool {
         guard let url = subscribeURL,
                let jsonData = try? JSONEncoder().encode(analytics) else {
-             print("\n\n\nANALYTICS SEND ERROR\n\n\n")
+             print("[AppServices] \n\n\nANALYTICS SEND ERROR\n\n\n")
              return false
          }
 
@@ -158,7 +159,7 @@ extension AttributionServerProcessor: AttributionServerProcessorProtocol {
         let jsonDataOrNil = try? JSONEncoder().encode(parameters)
         
         guard let url = tokensURL, let jsonData = jsonDataOrNil else {
-            print("\n\n\nFCM TOKEN SEND ERROR\n\n\n")
+            print("[AppServices] \n\n\nFCM TOKEN SEND ERROR\n\n\n")
             completion(false)
             return
         }

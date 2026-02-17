@@ -16,7 +16,7 @@ extension String {
             do {
                 return try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
             } catch {
-                print(error.localizedDescription)
+                print("[AppServices] Error parsing: \(error.localizedDescription)")
             }
         }
         return nil

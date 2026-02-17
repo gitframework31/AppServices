@@ -26,7 +26,7 @@ class AttributionUDProcessor: AttributionUDProcessorProtocol {
         let jsonDataOrNil = try? JSONEncoder().encode(data)
         
         guard let jsonData = jsonDataOrNil else {
-            print("\n\n\nATTRIBUTION IS NOT SAVED\n\n\n")
+            print("[AppServices] \n\n\nATTRIBUTION IS NOT SAVED\n\n\n")
             return
         }
         
@@ -67,7 +67,7 @@ class AttributionUDProcessor: AttributionUDProcessorProtocol {
         let jsonDataOrNil = try? JSONEncoder().encode(data)
         
         guard let jsonData = jsonDataOrNil else {
-            print("\n\n\nATTRIBUTION IS NOT SAVED\n\n\n")
+            print("[AppServices] \n\n\nATTRIBUTION IS NOT SAVED\n\n\n")
             return
         }
         

@@ -15,7 +15,7 @@ public class ExperimentManager {
     
     public var allRemoteValues = [String: String]()
     public var remoteError: Error?
-
+    
     init(deploymentKey: String, userInfo: [String: String]) {
         let builder = ExperimentConfigBuilder()
         builder.automaticExposureTracking(false)
@@ -38,7 +38,7 @@ public class ExperimentManager {
         if let userProperties {
             let builder = ExperimentUserBuilder()
             builder.userProperties(userProperties)
-
+            
             user = builder.build()
         }
         
@@ -51,7 +51,7 @@ public class ExperimentManager {
             }
             
             self.fetched = true
-
+            
             guard error == nil else {
                 self.remoteError = error
                 return

@@ -52,7 +52,7 @@ extension SubscriptionManager {
             case .nonRenewable:
                 newNonRenewables.append(product)
             default:
-                debugPrint("mapProducts unknown product : \(product).")
+                debugPrint("[AppServices] StoreKit Products - unknown product : \(product).")
             }
         }
 

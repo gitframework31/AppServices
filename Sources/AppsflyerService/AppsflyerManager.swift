@@ -23,47 +23,38 @@ public actor AppfslyerManager: NSObject {
     }
     
     public func waitForConversionDataOnFirstLaunch(timeout: TimeInterval = 15.0) async -> [String: String] {
-        // If it's not the first launch, return immediately
         if await hasConversionDataBeenReceived() {
             return await getDeeplinkResult() ?? [:]
         }
         
-        // Wait for conversion data with timeout
         return await withTaskGroup(of: [String: String].self) { group in
-            // Add timeout task
             group.addTask { [weak self] in
                 try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                 return await self?.getDeeplinkResult() ?? [:]
             }
             
-            // Add polling task
             group.addTask { [weak self] in
                 while true {
-                    // Check for cancellation first
                     if Task.isCancelled {
                         return [:]
                     }
                     
-                    // Check if conversion data has been received
                     if await self?.hasConversionDataBeenReceived() == true {
                         return await self?.getDeeplinkResult() ?? [:]
                     }
                     
-                    // If self is deallocated, exit
                     guard self != nil else {
                         return [:]
                     }
                     
                     do {
-                        try await Task.sleep(nanoseconds: 1_000_000_000) // Check every 1 second
+                        try await Task.sleep(nanoseconds: 1_000_000_000)
                     } catch {
-                        // Task was cancelled during sleep
                         return [:]
                     }
                 }
             }
             
-            // Return the first result (either timeout or conversion data received)
             for await result in group {
                 group.cancelAll()
                 return result
@@ -75,7 +66,7 @@ public actor AppfslyerManager: NSObject {
     
     private var deepLinkResultUDKey = "appservices_appsflyer_deepLinkResult"
     private var conversionDataReceivedKey = "appservices_appsflyer_conversionDataReceived"
-
+    
     private typealias ConversionDataContinuation = CheckedContinuation<AppfslyerConversionInfo, Error>
     private var conversionDataContinuation: ConversionDataContinuation?
     private var isCollbackReceived = false
@@ -161,7 +152,7 @@ extension AppfslyerManager: AppfslyerManagerProtocol {
     }
     
     public nonisolated func application(_ application: UIApplication, continue userActivity: NSUserActivity,
-                                   restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+                                        restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         return AppsFlyerLib.shared().continue(userActivity, restorationHandler: nil)
     }
     
@@ -193,7 +184,6 @@ extension AppfslyerManager: AppfslyerManagerProtocol {
             throw error
         }
         
-        // Check if already waiting for conversion data
         if conversionDataContinuation != nil {
             throw AppsflyerError.alreadyInProgress
         }
@@ -226,7 +216,6 @@ extension AppfslyerManager: AppfslyerManagerProtocol {
 
 extension AppfslyerManager: AppsFlyerLibDelegate {
     public nonisolated func onConversionDataSuccess(_ conversionInfo: [AnyHashable : Any]) {
-        print("onConversionDataSuccess \(conversionInfo)")
         Task {
             await setConversionError(nil)
             let deepLinkInfo = await parseDeepLink(conversionInfo.toSendable())

@@ -48,7 +48,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
         
         let result = await self.requestAllProducts(allIdentifiers)
         
-        let isFinished = await self.updateProductStatus()
+        let _ = await self.updateProductStatus()
         
         switch result {
         case .success(_):
@@ -75,10 +75,10 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
             for await result in Transaction.updates {
                 do {
                     let transaction = try await self.checkVerified(result)
-                    await self.updateProductStatus()
+                    let _ = await self.updateProductStatus()
                     await transaction.finish()
                 } catch {
-                    debugPrint("Transaction verification failed.")
+                    debugPrint("[AppServices] InApp Transaction verification failed.")
                 }
             }
         }
@@ -106,7 +106,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
         switch result {
         case .success(let verification):
             let transaction = try checkVerified(verification)
-            await updateProductStatus()
+            let _ = await updateProductStatus()
             await transaction.finish()
             let purchaseInfo = StoreKitTransaction(transaction: transaction, jsonRepresentation: transaction.jsonRepresentation, jwsRepresentation: verification.jwsRepresentation, originalID: "\(transaction.originalID)")
             return .success(transaction: purchaseInfo)
@@ -143,7 +143,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
         switch result {
         case .success(let verification):
             let transaction = try checkVerified(verification)
-            await updateProductStatus()
+            let _ = await updateProductStatus()
             await transaction.finish()
             let purchaseInfo = StoreKitTransaction(transaction: transaction, jsonRepresentation: transaction.jsonRepresentation, jwsRepresentation: verification.jwsRepresentation, originalID: "\(transaction.originalID)")
             return .success(transaction: purchaseInfo)
@@ -181,7 +181,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
     
     // MARK: Verify premium status
     public func verifyPremium() async -> StoreKitVerifyPremiumResult {
-        let isFinished = await updateProductStatus()
+        let _ = await updateProductStatus()
         
         var statuses:[StoreKitPremiumProduct] = []
         
@@ -208,7 +208,7 @@ public actor SubscriptionManager: NSObject, SubscriptionManagerProtocol {
     
     // MARK: Verify all subscriptions
     public func verifyAll() async -> StoreKitVerifyAllResult {
-        await updateProductStatus()
+        let _ = await updateProductStatus()
         
         var products:[Product] = []
         products.append(contentsOf: self.purchasedConsumables)

@@ -42,16 +42,16 @@ extension AppService {
     
     private func sendPurchaseAnalytics(_ transaction: OfferingTransaction, _ isPro: Bool) async {
         if isPro {
-            async let sendUserProperty = sendSubscriptionTypeUserProperty(identifier: transaction.skProductId)
-            async let sendToAttribution = sendPurchaseToServer(transaction)
-            async let sendToFacebook = sendPurchaseToFB(transaction)
-            async let sendToAppsflyer = sendPurchaseToAF(transaction)
+            async let sendUserProperty: Void = sendSubscriptionTypeUserProperty(identifier: transaction.skProductId)
+            async let sendToAttribution: Void = sendPurchaseToServer(transaction)
+            async let sendToFacebook: Void = sendPurchaseToFB(transaction)
+            async let sendToAppsflyer: Void = sendPurchaseToAF(transaction)
             
             _ = await (sendUserProperty, sendToAttribution, sendToFacebook, sendToAppsflyer)
         } else {
-            async let sendToAttribution = sendPurchaseToServer(transaction)
-            async let sendToFacebook = sendPurchaseToFB(transaction)
-            async let sendToAppsflyer = sendPurchaseToAF(transaction)
+            async let sendToAttribution: Void = sendPurchaseToServer(transaction)
+            async let sendToFacebook: Void = sendPurchaseToFB(transaction)
+            async let sendToAppsflyer: Void = sendPurchaseToAF(transaction)
             
             _ = await (sendToAttribution, sendToFacebook, sendToAppsflyer)
         }
@@ -107,7 +107,7 @@ extension AppService {
             }
             return .success(offerings: mappedOfferings)
         case .none:
-            print("purchaseManager not implemented")
+            print("[AppServices] purchaseManager not implemented")
             return nil
         }
     }
@@ -127,7 +127,7 @@ extension AppService {
         case .error(let error):
             return .error(error)
         case .none:
-            print("purchaseManager not implemented")
+            print("[AppServices] purchaseManager not implemented")
             return nil
         }
     }
@@ -147,7 +147,7 @@ extension AppService {
         case .error(let error):
             return .error(error)
         case .none:
-            print("purchaseManager not implemented")
+            print("[AppServices] purchaseManager not implemented")
             return nil
         }
     }

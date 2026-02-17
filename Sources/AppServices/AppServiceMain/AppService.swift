@@ -70,7 +70,7 @@ public actor AppService {
     var remoteConfigManager: RemoteConfigManager?
     var analyticsManager: AmplitudeManager?
     var sentryManager: SentryServiceProtocol?
-    var firebaseManager: FirebaseService = FirebaseService.shared
+    var firebaseManager: FirebaseService?// = FirebaseService.shared
     
     var idConfigured = false
     
@@ -106,10 +106,6 @@ public actor AppService {
         cont.onTermination = { [weak self] _ in
             Task { await self?.cancelAndClear() }
         }
-        
-        //        workTask = Task { [weak self] in
-        //            guard let self else { return }
-        //        }
         
         let environmentVariables = ProcessInfo.processInfo.environment
         
@@ -187,6 +183,7 @@ public actor AppService {
         }
         
         func configureServices(configuration: AppConfigurationProtocol) async -> Bool {
+            firebaseManager = await FirebaseService.shared
             sentryManager = SentryService.shared
             
             if let sentryDataSource = configuration.sentryConfigDataSource {
@@ -292,7 +289,7 @@ public actor AppService {
     }
     
     private func normalFlow() async {
-        print(" \(Date()) frame init started...")
+        print("[AppServices] \(Date()) init started...")
         let timeoutDuration: TimeInterval = 6.0
         
         let task = Task {
@@ -315,10 +312,10 @@ public actor AppService {
         }
         
         if timedOut {
-            print(" \(Date()) ⏱️ framework timeout after \(timeoutDuration) seconds")
+            print("[AppServices] \(Date()) ⏱️ init timeout after \(timeoutDuration) seconds")
             await signForConfigurationFinish()
         } else {
-            print(" \(Date()) ⏱️ framework init finished...")
+            print("[AppServices] \(Date()) ⏱️ init finished...")
         }
     }
     
@@ -373,7 +370,6 @@ public actor AppService {
                 await self?.checkIfReconfigNeeded()
             }
         }
-        print("handleDidBecomeActiveGroupFinished")
     }
     
     private func configureID() async {
@@ -391,12 +387,14 @@ public actor AppService {
             guard !idConfigured else {
                 return
             }
-            print("userID = \(id)")
+            
+            print("[AppServices] UserID = \(id)")
+            
             idConfigured = true
             await appsflyerManager?.setCustomerUserID(id)
             await purchaseManager?.setUserID(id)
             await facebookManager?.setUserID(id)
-            await firebaseManager.configure(id: id)
+            await firebaseManager?.configure(id: id)
             sentryManager?.setUserID(id)
             await analyticsManager?.setUserID(id)
             remoteConfigManager?.configure(configuration?.remoteConfigDataSource.allConfigs ?? []) {
@@ -455,7 +453,7 @@ public actor AppService {
             var isReconfigured = false
             
             networkMonitor.monitorInternetChanges { isConnected in
-                print("🌐 Network is connected:", isConnected)
+                print("[AppServices] 🌐 Network is connected:", isConnected)
                 guard isConnected else {
                     return
                 }
@@ -536,7 +534,6 @@ extension AppService {
         let error = await AttributionManager.shared.installError
         await AppServicesStatus.shared.updateStatus(.completed(error), for: .attribution)
         await handlePossibleAttributionUpdate()
-        print("handleAttributionInstallFinished")
     }
 }
 
@@ -596,18 +593,15 @@ extension AppService {
     }
     
     func getAttributionResult() async -> (network: UserNetworkSource, userAttribution: [String: String]) {
-        // Check if this is first launch and wait for conversion data if needed
         let isFirstLaunch = configuration?.appSettings.isFirstLaunch == true
         let deepLinkResult: [String: String]
         
         if isFirstLaunch {
-            // Wait for conversion data on first launch with 15 second timeout
             deepLinkResult = await appsflyerManager?.waitForConversionDataOnFirstLaunch(timeout: 7.0) ?? [:]
         } else {
-            // For subsequent launches, get result immediately
             deepLinkResult = await appsflyerManager?.getDeeplinkResult() ?? [:]
         }
-        print("deepLinkResult_ \(deepLinkResult)")
+
         let asaResult = await AttributionManager.shared.installResultData
         
         let isIPAT = asaResult?.isIPAT ?? false
@@ -742,7 +736,7 @@ extension AppService {
         
         let localization = Locale.current.identifier
         await AttributionManager.shared.checkAndSendSavedFCMToken(fcmToken: fcmToken, userId: userId, localization: localization) { result in
-            print("FCM token sent successfully - \(result)")
+            print("[AppServices] FCM token sent successfully - \(result)")
         }
         self.emit(.fcmToken(fcmToken))
     }

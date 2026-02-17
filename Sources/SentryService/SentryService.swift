@@ -47,7 +47,6 @@ public class SentryService: SentryServiceProtocol, SentryServicePublicProtocol {
                 }
                 
                 options.tracesSampleRate = NSNumber(value: data.tracesSampleRate)
-//                options.profilesSampleRate = NSNumber(value: data.profilesSampleRate)
                 options.enableCaptureFailedRequests = data.shouldCaptureHttpRequests
                 
                 let httpStatusCodeRange = HttpStatusCodeRange(min: data.httpCodesRange.lowerBound, max: data.httpCodesRange.length)

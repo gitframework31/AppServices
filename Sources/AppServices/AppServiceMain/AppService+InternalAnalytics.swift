@@ -26,19 +26,19 @@ extension AppService {
     func sendATTProperty(answer: Bool) async {
         await InternalUserProperty.att_status.identify(value: "\(answer)")
     }
-    //
+
     func sendConfigurationDelayed(status: [String: String]) async {
         let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         await InternalAnalyticsEvent.framework_start_delayed.log(params: status+internetStatus)
         await analyticsManager?.forceUploadEvents()
     }
-    //
+
     func sendConfigurationStarted(status: [String: String]) async {
         let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         await InternalAnalyticsEvent.framework_attribution_started.log(params: status+internetStatus)
         await analyticsManager?.forceUploadEvents()
     }
-    //
+
     func sendUserAttribution(userAttribution: [String: String], status: [String: String]) async {
         let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
@@ -53,7 +53,7 @@ extension AppService {
         _ = await (setUserProps, logFrameAttribution)
         await analyticsManager?.forceUploadEvents()
     }
-    //
+
     func sendUserAttributionUpdate(userAttribution: [String: String]) async {
         let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
@@ -64,7 +64,7 @@ extension AppService {
         _ = await (setUserProps, logFrameAttribution)
         await analyticsManager?.forceUploadEvents()
     }
-    //
+
     func sendConfigurationFinished(status: [String: String]) async {
         let internetStatus = ["connection": "\(networkMonitor.isConnected)", "connection_type": networkMonitor.currentConnectionType?.description ?? "unexpected"]
         
