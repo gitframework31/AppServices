@@ -72,4 +72,7 @@ public protocol AppServiceProtocol {
     /// - Returns: RestoreResult
     func restoreAll() async -> RestoreResult?
     
+    func startAmplitudeSessionReplay() async
+    
+    func stopAmplitudeSessionReplay() async
 }

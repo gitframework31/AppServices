@@ -7,6 +7,9 @@ public protocol AnalyticsConfigurationProtocol {
     var allEvents: [AnalyticsEvents] { get }
     var allUserProperties: [AnalyticsUserProperties] { get }
     var customServerURL: String? { get }
+    var sessionReplayShouldStartOnLaunch: Bool { get }
+    var sessionReplaySampleRateValue: Float { get }
+    var sessionReplayEnableRemoteConfiguration: Bool { get }
 }
 
 public extension AnalyticsConfigurationProtocol {
@@ -20,5 +23,17 @@ public extension AnalyticsConfigurationProtocol {
     
     var customServerURL: String? {
         return nil
+    }
+    
+    var sessionReplayShouldStartOnLaunch: Bool {
+        return true
+    }
+    
+    var sessionReplaySampleRateValue: Float {
+        return 0.0
+    }
+    
+    var sessionReplayEnableRemoteConfiguration: Bool {
+        return true
     }
 }

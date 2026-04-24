@@ -58,6 +58,7 @@ let package = Package(
         .package(url: "https://github.com/amplitude/Amplitude-Swift", from: "1.14.0"),
         .package(url: "https://github.com/amplitude/experiment-ios-client", from: "1.13.5"),
         .package(url: "https://github.com/getsentry/sentry-cocoa.git", from: "9.0.0"),
+        .package(url: "https://github.com/amplitude/AmplitudeSessionReplay-iOS", branch: "main"),
     ],
     targets: [
         .target(name: "AppServices",
@@ -78,7 +79,8 @@ let package = Package(
                ),
         .target(name: "AmplitudeService",
                 dependencies: [
-                    .product(name: "AmplitudeSwift", package: "Amplitude-Swift")
+                    .product(name: "AmplitudeSwift", package: "Amplitude-Swift"),
+                    .product(name: "AmplitudeSwiftSessionReplayPlugin", package: "AmplitudeSessionReplay-iOS"),
                 ],
                 path: "Sources/AmplitudeService",
                 linkerSettings: [

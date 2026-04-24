@@ -152,9 +152,13 @@ public actor AppService {
         
         Task {
             analyticsManager = AmplitudeManager.shared
-            await analyticsManager?.configure(apiKey: configuration.appSettings.amplitudeSecret,
-                                              isChinese: AppEnvironment.isChina,
-                                              customServerUrl: configuration.amplitudeDataSource.customServerURL)
+            
+            let amplitudeDataSource = AmplitudeConfigurationData(apiKey: configuration.appSettings.amplitudeSecret,
+                                                                 isChinese: AppEnvironment.isChina,
+                                                                 customServerUrl: configuration.amplitudeDataSource.customServerURL,
+                                                                 sessionReplayConfiguration: .init(shouldStartOnLaunch: configuration.amplitudeDataSource.sessionReplayShouldStartOnLaunch, sampleRateValue: configuration.amplitudeDataSource.sessionReplaySampleRateValue, enableRemoteConfiguration: configuration.amplitudeDataSource.sessionReplayEnableRemoteConfiguration))
+            
+            await analyticsManager?.configure(with: amplitudeDataSource)
         }
         
         Task {

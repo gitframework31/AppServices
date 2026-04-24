@@ -1,6 +1,7 @@
 
 import Foundation
 import AmplitudeSwift
+import AmplitudeSwiftSessionReplayPlugin
 
 public actor AmplitudeManager {
     var amplitudeDebugPrint: Bool {
@@ -10,17 +11,39 @@ public actor AmplitudeManager {
     
     // MARK: - Properties
     public static var shared = AmplitudeManager()
+    private var amplitudePlugin:AmplitudeSwiftSessionReplayPlugin? = nil
     private var amplitude: Amplitude!
     
     // MARK: - MethodsforceEventsUpload
-    public func configure(apiKey: String, isChinese: Bool, customServerUrl: String?) async {
+    public func configure(with data: AmplitudeConfigurationData) async {
+        amplitudePlugin = AmplitudeSwiftSessionReplayPlugin(sampleRate: data.sessionReplayConfiguration.sampleRateValue, enableRemoteConfig: data.sessionReplayConfiguration.enableRemoteConfiguration)
         
         let logger = AmplitudeLogger(logLevel: LogLevel.debug.rawValue)
-        amplitude = Amplitude(configuration: Configuration(apiKey: apiKey, loggerProvider: logger, autocapture: [.sessions, .networkTracking, .appLifecycles]))
+        amplitude = Amplitude(configuration: Configuration(apiKey: data.apiKey, loggerProvider: logger, autocapture: [.sessions, .networkTracking, .appLifecycles]))
         amplitude.configuration.minTimeBetweenSessionsMillis = 10000
         
-        if let customServerUrl, isChinese {
+        if data.sessionReplayConfiguration.shouldStartOnLaunch {
+            startAmplitudeSessionReplay()
+        }
+        
+        if let customServerUrl = data.customServerUrl, data.isChinese {
             amplitude.configuration.serverUrl = customServerUrl
+        }
+    }
+    
+    public func startAmplitudeSessionReplay() {
+        if let amplitudePlugin = amplitudePlugin {
+            amplitude?.add(plugin: amplitudePlugin)
+        } else {
+            assertionFailure()
+        }
+    }
+    
+    public func stopAmplitudeSessionReplay() {
+        if let amplitudePlugin = amplitudePlugin {
+            amplitude?.remove(plugin: amplitudePlugin)
+        } else {
+            assertionFailure()
         }
     }
     

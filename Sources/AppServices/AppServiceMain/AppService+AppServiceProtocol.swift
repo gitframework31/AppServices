@@ -42,4 +42,12 @@ extension AppService: AppServiceProtocol {
     public func handleNoInternetAlertWasShown() {
         handledNoInternetAlert = true
     }
+    
+    public func startAmplitudeSessionReplay() async {
+        await self.analyticsManager?.startAmplitudeSessionReplay()
+    }
+    
+    public func stopAmplitudeSessionReplay() async {
+        await self.analyticsManager?.stopAmplitudeSessionReplay()
+    }
 }
