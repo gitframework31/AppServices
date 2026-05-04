@@ -81,8 +81,14 @@ extension SubscriptionManager {
                     if let subscription = subscriptions.first(where: { $0.id == transaction.productID }) {
                         purchasedAllProducts.append(subscription)
                         let status = await transaction.subscriptionStatus
-                        if status?.state == .subscribed {
-                            purchasedSubscriptions.append(subscription)
+
+                        if let state = status?.state {
+                            switch state {
+                            case .subscribed, .inBillingRetryPeriod, .inGracePeriod:
+                                purchasedSubscriptions.append(subscription)
+                            default:
+                                break
+                            }
                         }
                     }
                 default:
